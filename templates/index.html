@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geocode to commons</title>
+</head>
+
+<body>
+<h1>Geocode UK coordinates to Commons Category</h1>
+
+<p>Examples</p>
+
+<ul>
+{% for lat, lon, name in samples %}
+<li><a href="?lat={{ lat }}&lon={{ lon }}">{{ name }}</a> ({{ lat }}, {{ lon }})</li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

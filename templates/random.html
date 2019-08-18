@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geocode to commons</title>
+</head>
+
+<body>
+<h1>Geocode UK coordinates to Commons Category</h1>
+
+<p>Random</p>
+
+<p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
+
+| <a href="https://www.openstreetmap.org/#map=17/{{lat }}/{{ lon }}">view in OSM</a></p>
+
+<pre>{{ result | pprint }}</pre>
+
+<p>({{ lat }}, {{ lon }}, {{result.commons_cat.title | pprint }}),</p>
+
+{% for element in elements %}
+<pre>{{ element | pprint }}</pre>
+{% endfor %}
+
+
+</body>
+</html>
