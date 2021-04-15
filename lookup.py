@@ -52,6 +52,13 @@ samples = [
     (53.392, -0.022, 'Brackenborough with Little Grimsby'),
     (53.463, -0.027, 'Fulstow'),
     (52.766, 0.31, 'Terrington St Clement'),
+    (53.1540, -1.8034, 'Hartington Town Quarter'),
+    (51.8532, -0.8829, 'Fleet Marston'),
+    (51.4785, -0.354, 'London Borough of Hounslow'),
+    (51.9687, -0.0327, 'Buckland, Hertfordshire'),
+    (51.0804, -2.3263, 'Zeals'),
+    (55.7644, -4.1770, 'East Kilbride'),
+    (51.4520, -2.6210, 'Bristol'),
 ]
 
 class QueryError(Exception):
