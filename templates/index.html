@@ -6,15 +6,33 @@
 </head>
 
 <body>
-<h1>Geocode UK coordinates to Commons Category</h1>
+<h1>Geocode coordinates to Commons Category</h1>
+
+<ol>
+<li>Overpass query to find OSM polygon that contain given lat/lon.</li>
+<li>Sort list of OSM polygons by admin_level descending.</li>
+<li>Check each polygon for wikidata tag, starting with highest admin_level first.</li>
+<li>If the wikidata tag isn't found try looking for a 'ref:gss' tag and look for matching Wikidata item using the
+Wikidata Query service (WDQS)</li>
+<li>Finally try match by name. Look for nearby items with the same name using WDQS.</li>
+<li>Return the most specific Wikidata QID and Commons Category.</li>
+</ol>
+
+<form>
+Latitude/Longitude: <input name="q"/> (e.g. 54.375, -2.999) <input type="submit" value="go"/>
+</form>
 
 <p>Examples</p>
 
 <ul>
 {% for lat, lon, name in samples %}
-<li><a href="?lat={{ lat }}&lon={{ lon }}">{{ name }}</a> ({{ lat }}, {{ lon }})</li>
+<li><a href="detail?lat={{ lat }}&lon={{ lon }}">{{ name }}</a> ({{ lat }}, {{ lon }})
+&mdash;
+<a href="?lat={{ lat }}&lon={{ lon }}">API call</a></li>
 {% endfor %}
 </ul>
+
+<p>source code: <a href="https://github.com/EdwardBetts/uk-geocode">https://github.com/EdwardBetts/uk-geocode</a></p>
 
 </body>
 </html>
