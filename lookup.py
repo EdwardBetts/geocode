@@ -16,6 +16,10 @@ east = 0.3536
 north = 53.7984
 west = -2.7296
 
+headers = {
+    'User-Agent': 'UK gecode/0.1 (edward@4angle.com)',
+}
+
 OVERPASS_URL = 'https://lz4.overpass-api.de'
 wikidata_query_api_url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
 wikidata_url = 'https://www.wikidata.org/w/api.php'
@@ -49,6 +53,12 @@ samples = [
     (53.463, -0.027, 'Fulstow'),
     (52.766, 0.31, 'Terrington St Clement'),
 ]
+
+class QueryError(Exception):
+    def __init__(self, query, r):
+        self.query = query
+        self.r = r
+
 
 app = Flask(__name__)
 app.debug = True
@@ -91,7 +101,7 @@ def wikidata_api_call(params):
         **params,
     }
 
-    r = requests.get(wikidata_url, params=call_params)
+    r = requests.get(wikidata_url, params=call_params, headers=headers)
     return r
 
 def get_entity(qid):
@@ -115,16 +125,21 @@ def qid_to_commons_category(qid):
 
 def wdqs(query):
     r = requests.post(wikidata_query_api_url,
-                      data={'query': query, 'format': 'json'})
+                      data={'query': query, 'format': 'json'},
+                      headers=headers)
 
-    return r.json()
-
+    try:
+        return r.json()
+    except simplejson.errors.JSONDecodeError:
+        raise QueryError(query, r)
 
 def endpoint():
     return OVERPASS_URL + '/api/interpreter'
 
 def run_query(oql, error_on_rate_limit=True):
-    return requests.post(endpoint(), data=oql.encode('utf-8'))
+    return requests.post(endpoint(),
+                         data=oql.encode('utf-8'),
+                         headers=headers)
 
 def get_elements(oql):
     return run_query(oql).json()['elements']
