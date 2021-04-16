@@ -13,8 +13,6 @@ from geopy.distance import distance
 
 commons_cat_start = "https://commons.wikimedia.org/wiki/Category:"
 
-headers = {"User-Agent": "UK gecode/0.1 (edward@4angle.com)"}
-
 wd_entity = "http://www.wikidata.org/entity/Q"
 city_of_london_qid = "Q23311"
 
@@ -33,49 +31,6 @@ def get_random_lat_lon():
     lon = random.randrange(int(west * mul), int(east * mul)) / mul
 
     return lat, lon
-
-
-@app.route("/random")
-def random_location():
-    lat, lon = get_random_lat_lon()
-
-    elements = geocode.overpass.get_osm_elements(lat, lon)
-    result = do_lookup(elements, lat, lon)
-
-    return render_template(
-        "random.html", lat=lat, lon=lon, result=result, elements=elements
-    )
-
-
-@app.route("/wikidata_tag")
-def wikidata_tag():
-    lat = float(request.args.get("lat"))
-    lon = float(request.args.get("lon"))
-
-    scotland_code = get_scotland_code(lat, lon)
-
-    if scotland_code:
-        rows = lookup_scottish_parish_in_wikidata(scotland_code)
-        hit = commons_from_rows(rows)
-        elements = []
-        result = build_dict(hit, lat, lon)
-    else:
-        elements = geocode.overpass.get_osm_elements(lat, lon)
-        result = do_lookup(elements, lat, lon)
-
-    return render_template(
-        "wikidata_tag.html", lat=lat, lon=lon, result=result, elements=elements
-    )
-
-
-@app.route("/detail")
-def detail_page():
-    try:
-        lat, lon = [float(request.args.get(param)) for param in ("lat", "lon")]
-    except TypeError:
-        return redirect(url_for("index"))
-    reply = lat_lon_to_wikidata(lat, lon)
-    return render_template("random.html", lat=lat, lon=lon, **reply)
 
 
 def bounding_box_area(element):
@@ -218,21 +173,6 @@ def lat_lon_to_wikidata(lat, lon):
     return {"elements": elements, "result": result}
 
 
-@app.route("/")
-def index():
-    q = request.args.get("q")
-    if q and q.strip():
-        lat, lon = [v.strip() for v in q.split(",", 1)]
-        return redirect(url_for("detail_page", lat=lat, lon=lon))
-
-    lat = request.args.get("lat")
-    lon = request.args.get("lon")
-    if lat is not None and lon is not None:
-        return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
-
-    samples = sorted(geocode.samples, key=lambda row: row[2])
-    return render_template("index.html", samples=samples)
-
 
 def lookup_scottish_parish_in_wikidata(code):
     query = render_template("sparql/scottish_parish.sparql", code=code)
@@ -325,6 +265,65 @@ def osm_lookup(elements, lat, lon):
         "commons_cat": geocode.qid_to_commons_category(qid),
         "admin_level": admin_level,
     }
+
+
+@app.route("/")
+def index():
+    q = request.args.get("q")
+    if q and q.strip():
+        lat, lon = [v.strip() for v in q.split(",", 1)]
+        return redirect(url_for("detail_page", lat=lat, lon=lon))
+
+    lat, lon = request.args.get("lat"), request.args.get("lon")
+
+    if lat is not None and lon is not None:
+        return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
+
+    samples = sorted(geocode.samples, key=lambda row: row[2])
+    return render_template("index.html", samples=samples)
+
+
+@app.route("/random")
+def random_location():
+    lat, lon = get_random_lat_lon()
+
+    elements = geocode.overpass.get_osm_elements(lat, lon)
+    result = do_lookup(elements, lat, lon)
+
+    return render_template(
+        "detail.html", lat=lat, lon=lon, result=result, elements=elements
+    )
+
+
+@app.route("/wikidata_tag")
+def wikidata_tag():
+    lat = float(request.args.get("lat"))
+    lon = float(request.args.get("lon"))
+
+    scotland_code = get_scotland_code(lat, lon)
+
+    if scotland_code:
+        rows = lookup_scottish_parish_in_wikidata(scotland_code)
+        hit = commons_from_rows(rows)
+        elements = []
+        result = build_dict(hit, lat, lon)
+    else:
+        elements = geocode.overpass.get_osm_elements(lat, lon)
+        result = do_lookup(elements, lat, lon)
+
+    return render_template(
+        "wikidata_tag.html", lat=lat, lon=lon, result=result, elements=elements
+    )
+
+
+@app.route("/detail")
+def detail_page():
+    try:
+        lat, lon = [float(request.args.get(param)) for param in ("lat", "lon")]
+    except TypeError:
+        return redirect(url_for("index"))
+    reply = lat_lon_to_wikidata(lat, lon)
+    return render_template("detail.html", lat=lat, lon=lon, **reply)
 
 
 if __name__ == "__main__":
