@@ -1,26 +1,21 @@
 #!/usr/bin/python3
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-import requests
+import geocode
 import os
 import json
 import urllib.parse
 import random
-import simplejson
 import psycopg2
 from geopy.distance import distance
 
 # select gid, code, name from scotland where st_contains(geom, ST_Transform(ST_SetSRID(ST_MakePoint(-4.177, 55.7644), 4326), 27700));
 
 commons_cat_start = "https://commons.wikimedia.org/wiki/Category:"
-use_cache = False
+use_cache = True
 
-headers = {
-    "User-Agent": "UK gecode/0.1 (edward@4angle.com)",
-}
+headers = {"User-Agent": "UK gecode/0.1 (edward@4angle.com)"}
 
-OVERPASS_URL = "https://lz4.overpass-api.de"
-wikidata_query_api_url = "https://query.wikidata.org/bigdata/namespace/wdq/sparql"
 wd_entity = "http://www.wikidata.org/entity/Q"
 city_of_london_qid = "Q23311"
 
@@ -60,12 +55,6 @@ samples = [
     (55.7644, -4.1770, "East Kilbride"),
     (51.4520, -2.6210, "Bristol"),
 ]
-
-
-class QueryError(Exception):
-    def __init__(self, query, r):
-        self.query = query
-        self.r = r
 
 
 app = Flask(__name__)
@@ -164,7 +153,7 @@ def build_dict(hit, lat, lon):
 def do_lookup(elements, lat, lon):
     try:
         hit = osm_lookup(elements, lat, lon)
-    except QueryError as e:
+    except geocode.QueryError as e:
         return {
             "query": e.query,
             "error": e.r.text,
@@ -225,7 +214,7 @@ SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSi
 } ORDER BY (?distance)"""
 
     query = query_template.replace("LAT", lat).replace("LON", lon)
-    reply = wdqs(query)
+    reply = geocode.wdqs(query)
     return reply["results"]["bindings"]
 
 
@@ -308,54 +297,8 @@ def index():
     return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
 
 
-def wikidata_api_call(params):
-    return requests.get(
-        "https://www.wikidata.org/w/api.php",
-        params={"format": "json", "formatversion": 2, **params},
-        headers=headers,
-    ).json()
-
-
-def get_entity(qid):
-    json_data = wikidata_api_call({"action": "wbgetentities", "ids": qid})
-
-    try:
-        entity = list(json_data["entities"].values())[0]
-    except KeyError:
-        return
-    if "missing" not in entity:
-        return entity
-
-
-def qid_to_commons_category(qid):
-    entity = get_entity(qid)
-    try:
-        commons_cat = entity["claims"]["P373"][0]["mainsnak"]["datavalue"]["value"]
-    except Exception:
-        commons_cat = None
-
-    return commons_cat
-
-
-def wdqs(query):
-    r = requests.post(
-        wikidata_query_api_url, data={"query": query, "format": "json"}, headers=headers
-    )
-
-    try:
-        return r.json()
-    except simplejson.errors.JSONDecodeError:
-        raise QueryError(query, r)
-
-
-def run_query(oql, error_on_rate_limit=True):
-    return requests.post(
-        OVERPASS_URL + "/api/interpreter", data=oql.encode("utf-8"), headers=headers
-    )
-
-
 def get_elements(oql):
-    return run_query(oql).json()["elements"]
+    return geocode.run_query(oql).json()["elements"]
 
 
 def is_in_lat_lon(lat, lon):
@@ -365,7 +308,7 @@ is_in({lat},{lon})->.a;
 (way(pivot.a); rel(pivot.a););
 out bb tags qt;"""
 
-    return run_query(oql)
+    return geocode.run_query(oql)
 
 
 def lookup_scottish_parish_in_wikidata(code):
@@ -381,7 +324,7 @@ SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
 """.replace(
         "CODE", code
     )
-    reply = wdqs(query)
+    reply = geocode.wdqs(query)
     return reply["results"]["bindings"]
 
 
@@ -397,7 +340,7 @@ SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
 """.replace(
         "GSS", repr(gss)
     )
-    reply = wdqs(query)
+    reply = geocode.wdqs(query)
     return reply["results"]["bindings"]
 
 
@@ -424,7 +367,7 @@ SELECT DISTINCT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
         .replace("LON", str(lon))
     )
 
-    reply = wdqs(query)
+    reply = geocode.wdqs(query)
     return reply["results"]["bindings"]
 
 
@@ -479,7 +422,7 @@ def osm_lookup(elements, lat, lon):
             continue
         if "wikidata" in tags:
             qid = tags["wikidata"]
-            commons = qid_to_commons_category(qid)
+            commons = geocode.qid_to_commons_category(qid)
             if commons:
                 return {
                     "wikidata": qid,
@@ -513,7 +456,7 @@ def osm_lookup(elements, lat, lon):
     qid = has_wikidata_tag[0]["wikidata"]
     return {
         "wikidata": qid,
-        "commons_cat": qid_to_commons_category(qid),
+        "commons_cat": geocode.qid_to_commons_category(qid),
         "admin_level": admin_level,
     }
 
