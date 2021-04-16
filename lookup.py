@@ -2,8 +2,8 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import geocode
-import os
-import json
+import geocode.wikidata
+import geocode.overpass
 import urllib.parse
 import random
 import psycopg2
@@ -12,53 +12,15 @@ from geopy.distance import distance
 # select gid, code, name from scotland where st_contains(geom, ST_Transform(ST_SetSRID(ST_MakePoint(-4.177, 55.7644), 4326), 27700));
 
 commons_cat_start = "https://commons.wikimedia.org/wiki/Category:"
-use_cache = True
 
 headers = {"User-Agent": "UK gecode/0.1 (edward@4angle.com)"}
 
 wd_entity = "http://www.wikidata.org/entity/Q"
 city_of_london_qid = "Q23311"
 
-samples = [
-    (50.8326, -0.2689, "Adur"),
-    (52.4914, -0.69645, "Corby"),
-    (50.893, -4.265, "Newton St Petrock"),
-    (51.779, 0.128, "Harlow"),
-    (52.387, 0.294, "Ely"),
-    (50.9, -1.6, "Minstead"),
-    (52.43, -1.11, "South Kilworth"),
-    (53.117, -0.202, "Tattershall Thorpe"),
-    (53.351, -2.701, "Halton"),
-    (52.421, -0.651, "Warkton"),
-    (51.51, -1.547, "Lambourn"),
-    (52.62, -1.884, "Shenstone"),
-    (53.309, -1.539, "Sheffield"),
-    (53.322, 0.032, "Haugham"),
-    (51.05, -2.598, "Babcary"),
-    (51.158, -1.906, "Berwick St James"),
-    (51.867, -1.204, "Weston-on-the-Green"),
-    (51.034, -2.005, "Ebbesbourne Wake"),
-    (51.07, -0.718, "Fernhurst"),
-    (53.059, -0.144, "Wildmore"),
-    (51.473, 0.221, "Dartford"),
-    (51.059, 0.05, "Danehill"),
-    (52.253, -0.122, "Papworth Everard"),
-    (53.498, -0.415, "West Lindsey"),
-    (53.392, -0.022, "Brackenborough with Little Grimsby"),
-    (53.463, -0.027, "Fulstow"),
-    (52.766, 0.31, "Terrington St Clement"),
-    (53.1540, -1.8034, "Hartington Town Quarter"),
-    (51.8532, -0.8829, "Fleet Marston"),
-    (51.4785, -0.354, "London Borough of Hounslow"),
-    (51.9687, -0.0327, "Buckland, Hertfordshire"),
-    (51.0804, -2.3263, "Zeals"),
-    (55.7644, -4.1770, "East Kilbride"),
-    (51.4520, -2.6210, "Bristol"),
-]
-
 
 app = Flask(__name__)
-app.debug = True
+app.config.from_object("config.default")
 
 
 def get_random_lat_lon():
@@ -77,7 +39,7 @@ def get_random_lat_lon():
 def random_location():
     lat, lon = get_random_lat_lon()
 
-    elements = get_osm_elements(lat, lon)
+    elements = geocode.overpass.get_osm_elements(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     return render_template(
@@ -98,7 +60,7 @@ def wikidata_tag():
         elements = []
         result = build_dict(hit, lat, lon)
     else:
-        elements = get_osm_elements(lat, lon)
+        elements = geocode.overpass.get_osm_elements(lat, lon)
         result = do_lookup(elements, lat, lon)
 
     return render_template(
@@ -153,7 +115,7 @@ def build_dict(hit, lat, lon):
 def do_lookup(elements, lat, lon):
     try:
         hit = osm_lookup(elements, lat, lon)
-    except geocode.QueryError as e:
+    except geocode.wkidata.QueryError as e:
         return {
             "query": e.query,
             "error": e.r.text,
@@ -164,9 +126,7 @@ def do_lookup(elements, lat, lon):
 
 
 def get_scotland_code(lat, lon):
-    conn = psycopg2.connect(
-        dbname="geocode", user="geocode", password="ooK3ohgh", host="localhost"
-    )
+    conn = psycopg2.connect(**app.config["DB_PARAMS"])
     cur = conn.cursor()
 
     point = f"ST_Transform(ST_SetSRID(ST_MakePoint({lon}, {lat}), 4326), 27700)"
@@ -191,31 +151,8 @@ def wdqs_geosearch_query(lat, lon):
     if isinstance(lon, float):
         lon = f"{lon:f}"
 
-    query_template = """
-
-SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSiteLink WHERE {
-  {
-    SELECT DISTINCT ?item ?location ?distance ?isa WHERE {
-      ?item wdt:P31/wdt:P279* wd:Q486972.
-      ?item wdt:P31 ?isa .
-      SERVICE wikibase:around {
-        ?item wdt:P625 ?location.
-        bd:serviceParam wikibase:center "Point(LON LAT)"^^geo:wktLiteral;
-          wikibase:radius 5;
-          wikibase:distance ?distance.
-      }
-    }
-  }
-  MINUS { ?item wdt:P582 ?endTime . }
-  OPTIONAL { ?item wdt:P373 ?commonsCat. }
-  OPTIONAL { ?commonsSiteLink schema:about ?item;
-             schema:isPartOf <https://commons.wikimedia.org/>. }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-} ORDER BY (?distance)"""
-
-    query = query_template.replace("LAT", lat).replace("LON", lon)
-    reply = geocode.wdqs(query)
-    return reply["results"]["bindings"]
+    query = render_template("sparql/geosearch.sparql", lat=lat, lon=lon)
+    return geocode.wikidata.wdqs(query)
 
 
 def wdqs_geosearch(lat, lon):
@@ -260,7 +197,7 @@ def lat_lon_to_wikidata(lat, lon):
 
         return {"elements": elements, "result": result}
 
-    elements = get_osm_elements(lat, lon)
+    elements = geocode.overpass.get_osm_elements(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     # special case because the City of London is admin_level=6 in OSM
@@ -290,85 +227,28 @@ def index():
 
     lat = request.args.get("lat")
     lon = request.args.get("lon")
-    if lat is None or lon is None:
-        samples.sort(key=lambda row: row[2])
-        return render_template("index.html", samples=samples)
+    if lat is not None and lon is not None:
+        return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
 
-    return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
-
-
-def get_elements(oql):
-    return geocode.run_query(oql).json()["elements"]
-
-
-def is_in_lat_lon(lat, lon):
-    oql = f"""
-[out:json][timeout:25];
-is_in({lat},{lon})->.a;
-(way(pivot.a); rel(pivot.a););
-out bb tags qt;"""
-
-    return geocode.run_query(oql)
+    samples = sorted(geocode.samples, key=lambda row: row[2])
+    return render_template("index.html", samples=samples)
 
 
 def lookup_scottish_parish_in_wikidata(code):
-    query = """
-SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
-  ?item wdt:P528 "CODE" .
-  ?item wdt:P31 wd:Q5124673 .
-  OPTIONAL { ?commonsSiteLink schema:about ?item ;
-             schema:isPartOf <https://commons.wikimedia.org/> }
-  OPTIONAL { ?item wdt:P373 ?commonsCat }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-}
-""".replace(
-        "CODE", code
-    )
-    reply = geocode.wdqs(query)
-    return reply["results"]["bindings"]
+    query = render_template("sparql/scottish_parish.sparql", code=code)
+    return geocode.wikidata.wdqs(query)
 
 
 def lookup_gss_in_wikidata(gss):
-    query = """
-SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
-  ?item wdt:P836 GSS .
-  OPTIONAL { ?commonsSiteLink schema:about ?item ;
-             schema:isPartOf <https://commons.wikimedia.org/> }
-  OPTIONAL { ?item wdt:P373 ?commonsCat }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-}
-""".replace(
-        "GSS", repr(gss)
-    )
-    reply = geocode.wdqs(query)
-    return reply["results"]["bindings"]
+    query = render_template("sparql/lookup_gss.sparql", gss=gss)
+    return geocode.wikidata.wdqs(query)
 
 
 def lookup_wikidata_by_name(name, lat, lon):
-    query = (
-        """
-SELECT DISTINCT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
-  ?item rdfs:label LABEL@en .
-  FILTER NOT EXISTS { ?item wdt:P31 wd:Q17362920 } .# ignore Wikimedia duplicated page
-  OPTIONAL { ?commonsSiteLink schema:about ?item ;
-             schema:isPartOf <https://commons.wikimedia.org/> }
-  OPTIONAL { ?item wdt:P373 ?commonsCat }
-  ?item wdt:P625 ?coords .
-
-  FILTER(geof:distance(?coords, "Point(LON LAT)"^^geo:wktLiteral) < 10)
-  FILTER(?commonsCat || ?commonsSiteLink)
-
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-}
-""".replace(
-            "LABEL", repr(name)
-        )
-        .replace("LAT", str(lat))
-        .replace("LON", str(lon))
+    query = render_template(
+        "sparql/lookup_by_name.sparql", name=repr(name), lat=str(lat), lon=str(lon)
     )
-
-    reply = geocode.wdqs(query)
-    return reply["results"]["bindings"]
+    return geocode.wikidata.wdqs(query)
 
 
 def unescape_title(t):
@@ -391,20 +271,6 @@ def get_commons_cat_from_gss(gss):
     return commons_from_rows(lookup_gss_in_wikidata(gss))
 
 
-def get_osm_elements(lat, lon):
-    filename = f"cache/{lat}_{lon}.json"
-
-    if use_cache and os.path.exists(filename):
-        elements = json.load(open(filename))["elements"]
-    else:
-        r = is_in_lat_lon(lat, lon)
-        if use_cache:
-            open(filename, "wb").write(r.content)
-        elements = r.json()["elements"]
-
-    return elements
-
-
 def osm_lookup(elements, lat, lon):
     elements.sort(key=lambda e: bounding_box_area(e))
 
@@ -422,7 +288,7 @@ def osm_lookup(elements, lat, lon):
             continue
         if "wikidata" in tags:
             qid = tags["wikidata"]
-            commons = geocode.qid_to_commons_category(qid)
+            commons = geocode.wikidata.qid_to_commons_category(qid)
             if commons:
                 return {
                     "wikidata": qid,

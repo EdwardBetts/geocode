@@ -1,0 +1,19 @@
+SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSiteLink WHERE {
+  {
+    SELECT DISTINCT ?item ?location ?distance ?isa WHERE {
+      ?item wdt:P31/wdt:P279* wd:Q486972.
+      ?item wdt:P31 ?isa .
+      SERVICE wikibase:around {
+        ?item wdt:P625 ?location.
+        bd:serviceParam wikibase:center "Point({{ lon }} {{ lat }})"^^geo:wktLiteral;
+          wikibase:radius 5;
+          wikibase:distance ?distance.
+      }
+    }
+  }
+  MINUS { ?item wdt:P582 ?endTime . }
+  OPTIONAL { ?item wdt:P373 ?commonsCat. }
+  OPTIONAL { ?commonsSiteLink schema:about ?item;
+             schema:isPartOf <https://commons.wikimedia.org/>. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} ORDER BY (?distance)"""

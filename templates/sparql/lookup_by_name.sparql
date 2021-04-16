@@ -1,0 +1,14 @@
+SELECT DISTINCT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
+  ?item rdfs:label {{ name }}@en .
+  FILTER NOT EXISTS { ?item wdt:P31 wd:Q17362920 } .# ignore Wikimedia duplicated page
+  OPTIONAL { ?commonsSiteLink schema:about ?item ;
+             schema:isPartOf <https://commons.wikimedia.org/> }
+  OPTIONAL { ?item wdt:P373 ?commonsCat }
+  ?item wdt:P625 ?coords .
+
+  FILTER(geof:distance(?coords, "Point({{ lon }} {{ lat }})"^^geo:wktLiteral) < 10)
+  FILTER(?commonsCat || ?commonsSiteLink)
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+
