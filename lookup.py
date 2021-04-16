@@ -112,6 +112,7 @@ def wikidata_tag():
 
     return render_template('wikidata_tag.html', lat=lat, lon=lon, result=result, elements=elements)
 
+
 @app.route("/detail")
 def detail_page():
     try:
@@ -121,6 +122,7 @@ def detail_page():
     reply = lat_lon_to_wikidata(lat, lon)
     return render_template('random.html', lat=lat, lon=lon, **reply)
 
+
 def bounding_box_area(element):
     bbox = element['bounds']
 
@@ -129,14 +131,17 @@ def bounding_box_area(element):
 
     return x.km * y.km
 
+
 def wd_to_qid(wd):
     # expecting {'type': 'url', 'value': 'https://www.wikidata.org/wiki/Q30'}
     if wd['type'] == 'uri':
         return wd_uri_to_qid(wd['value'])
 
+
 def wd_uri_to_qid(value):
     assert value.startswith(wd_entity)
     return value[len(wd_entity) - 1:]
+
 
 def build_dict(hit, lat, lon):
     coords = {'lat': lat, 'lon': lon}
@@ -162,6 +167,7 @@ def do_lookup(elements, lat, lon):
 
     return build_dict(hit, lat, lon)
 
+
 def get_scotland_code(lat, lon):
     conn = psycopg2.connect(dbname='geocode', user='geocode', password='ooK3ohgh', host='localhost')
     cur = conn.cursor()
@@ -178,6 +184,7 @@ def get_scotland_code(lat, lon):
     conn.close()
     if row:
         return row[0]
+
 
 def wdqs_geosearch_query(lat, lon):
     if isinstance(lat, float):
@@ -211,6 +218,7 @@ SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSi
     reply = wdqs(query)
     return reply['results']['bindings']
 
+
 def wdqs_geosearch(lat, lon):
     default_max_dist = 1
     rows = wdqs_geosearch_query(lat, lon)
@@ -236,6 +244,7 @@ def wdqs_geosearch(lat, lon):
             break
 
         return row
+
 
 def lat_lon_to_wikidata(lat, lon):
     scotland_code = get_scotland_code(lat, lon)
@@ -268,6 +277,7 @@ def lat_lon_to_wikidata(lat, lon):
 
     return {'elements': elements, 'result': result}
 
+
 @app.route("/")
 def index():
     q = request.args.get('q')
@@ -282,6 +292,7 @@ def index():
         return render_template('index.html', samples=samples)
 
     return jsonify(lat_lon_to_wikidata(lat, lon)['result'])
+
 
 def wikidata_api_call(params):
     call_params = {
@@ -303,6 +314,7 @@ def get_entity(qid):
     if 'missing' not in entity:
         return entity
 
+
 def qid_to_commons_category(qid):
     entity = get_entity(qid)
     try:
@@ -311,6 +323,7 @@ def qid_to_commons_category(qid):
         commons_cat = None
 
     return commons_cat
+
 
 def wdqs(query):
     r = requests.post(wikidata_query_api_url,
@@ -322,16 +335,20 @@ def wdqs(query):
     except simplejson.errors.JSONDecodeError:
         raise QueryError(query, r)
 
+
 def endpoint():
     return OVERPASS_URL + '/api/interpreter'
+
 
 def run_query(oql, error_on_rate_limit=True):
     return requests.post(endpoint(),
                          data=oql.encode('utf-8'),
                          headers=headers)
 
+
 def get_elements(oql):
     return run_query(oql).json()['elements']
+
 
 def is_in_lat_lon(lat, lon):
     oql = f'''
@@ -341,6 +358,7 @@ is_in({lat},{lon})->.a;
 out bb tags qt;'''
 
     return run_query(oql)
+
 
 def lookup_scottish_parish_in_wikidata(code):
     query = '''
@@ -356,6 +374,7 @@ SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
     reply = wdqs(query)
     return reply['results']['bindings']
 
+
 def lookup_gss_in_wikidata(gss):
     query = '''
 SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
@@ -368,6 +387,7 @@ SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
 '''.replace('GSS', repr(gss))
     reply = wdqs(query)
     return reply['results']['bindings']
+
 
 def lookup_wikidata_by_name(name, lat, lon):
     query = '''
@@ -389,8 +409,10 @@ SELECT DISTINCT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
     reply = wdqs(query)
     return reply['results']['bindings']
 
+
 def unescape_title(t):
     return urllib.parse.unquote(t.replace('_', ' '))
+
 
 def commons_from_rows(rows):
     for row in rows:
@@ -404,10 +426,12 @@ def commons_from_rows(rows):
             cat = unescape_title(site_link[len(commons_cat_start):])
             return {'wikidata': qid, 'commons_cat': cat}
 
+
 def get_commons_cat_from_gss(gss):
     print('GSS:', gss)
     rows = lookup_gss_in_wikidata(gss)
     return commons_from_rows(rows)
+
 
 def get_osm_elements(lat, lon):
     filename = f'cache/{lat}_{lon}.json'
@@ -421,6 +445,7 @@ def get_osm_elements(lat, lon):
         elements = r.json()['elements']
 
     return elements
+
 
 def osm_lookup(elements, lat, lon):
     is_in = []
