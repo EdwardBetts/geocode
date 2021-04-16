@@ -1,5 +1,5 @@
 SELECT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
-  ?item wdt:P836 {{ gss }} .
+  ?item wdt:P836 "{{ gss }}" .
   OPTIONAL { ?commonsSiteLink schema:about ?item ;
              schema:isPartOf <https://commons.wikimedia.org/> }
   OPTIONAL { ?item wdt:P373 ?commonsCat }

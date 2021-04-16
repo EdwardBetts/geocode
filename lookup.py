@@ -70,7 +70,7 @@ def build_dict(hit, lat, lon):
 def do_lookup(elements, lat, lon):
     try:
         hit = osm_lookup(elements, lat, lon)
-    except geocode.wkidata.QueryError as e:
+    except geocode.wikidata.QueryError as e:
         return {
             "query": e.query,
             "error": e.r.text,
