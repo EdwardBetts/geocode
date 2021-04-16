@@ -15,12 +15,6 @@ from geopy.distance import distance
 commons_cat_start = 'https://commons.wikimedia.org/wiki/Category:'
 use_cache = False
 
-south = 50.8520
-east = 0.3536
-
-north = 53.7984
-west = -2.7296
-
 headers = {
     'User-Agent': 'UK gecode/0.1 (edward@4angle.com)',
 }
@@ -77,17 +71,28 @@ class QueryError(Exception):
 app = Flask(__name__)
 app.debug = True
 
-mul = 10000
+
+def get_random_lat_lon():
+    ''' Select random lat/lon within the UK '''
+    south, east = 50.8520, 0.3536
+    north, west = 53.7984, -2.7296
+
+    mul = 10000
+    lat = random.randrange(int(south * mul), int(north * mul)) / mul
+    lon = random.randrange(int(west * mul), int(east * mul)) / mul
+
+    return lat, lon
+
 
 @app.route("/random")
 def random_location():
-    lat = random.randrange(int(south * mul), int(north * mul)) / mul
-    lon = random.randrange(int(west * mul), int(east * mul)) / mul
+    lat, lon = get_random_lat_lon()
 
     elements = get_osm_elements(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     return render_template('random.html', lat=lat, lon=lon, result=result, elements=elements)
+
 
 @app.route("/wikidata_tag")
 def wikidata_tag():
