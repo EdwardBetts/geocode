@@ -32,7 +32,7 @@
 
 {% for element in elements %}
 {% set tags = element.tags %}
-  <pre>{{ element | pprint }}</pre>
+  <pre>{{ element.tags | pprint }}</pre>
 {% endfor %}
 
 

@@ -2,10 +2,9 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import geocode
-from geocode import wikidata, overpass, scotland, database, model
+from geocode import wikidata, scotland, database, model
 import urllib.parse
 import random
-from geopy.distance import distance
 
 # select gid, code, name from scotland where st_contains(geom, ST_Transform(ST_SetSRID(ST_MakePoint(-4.177, 55.7644), 4326), 27700));
 
@@ -30,15 +29,6 @@ def get_random_lat_lon():
     lon = random.randrange(int(west * mul), int(east * mul)) / mul
 
     return lat, lon
-
-
-def bounding_box_area(element):
-    bbox = element["bounds"]
-
-    x = distance((bbox["maxlat"], bbox["minlon"]), (bbox["maxlat"], bbox["maxlon"]))
-    y = distance((bbox["minlat"], bbox["maxlon"]), (bbox["maxlat"], bbox["minlon"]))
-
-    return x.km * y.km
 
 
 def wd_to_qid(wd):
@@ -131,7 +121,7 @@ def lat_lon_to_wikidata(lat, lon):
 
         return {"elements": elements, "result": result}
 
-    elements = overpass.get_osm_elements(lat, lon)
+    elements = model.Polygon.coords_within(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     # special case because the City of London is admin_level=6 in OSM
@@ -190,12 +180,10 @@ def get_commons_cat_from_gss(gss):
 
 
 def osm_lookup(elements, lat, lon):
-    elements.sort(key=lambda e: bounding_box_area(e))
+    elements = sorted(elements, key=lambda e: e.area)
 
     for e in elements:
-        if "tags" not in e:
-            continue
-        tags = e["tags"]
+        tags = e.tags
         admin_level_tag = tags.get("admin_level")
         admin_level = (
             int(admin_level_tag)
@@ -265,7 +253,7 @@ def index():
 def random_location():
     lat, lon = get_random_lat_lon()
 
-    elements = overpass.get_osm_elements(lat, lon)
+    elements = model.Polygon.coords_within(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     return render_template(
@@ -286,7 +274,7 @@ def wikidata_tag():
         elements = []
         result = build_dict(hit, lat, lon)
     else:
-        elements = overpass.get_osm_elements(lat, lon)
+        elements = model.Polygon.coords_within(lat, lon)
         result = do_lookup(elements, lat, lon)
 
     return render_template(
