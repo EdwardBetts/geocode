@@ -2,11 +2,9 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import geocode
-import geocode.wikidata
-import geocode.overpass
+from geocode import wikidata, overpass, scotland, database, model
 import urllib.parse
 import random
-import psycopg2
 from geopy.distance import distance
 
 # select gid, code, name from scotland where st_contains(geom, ST_Transform(ST_SetSRID(ST_MakePoint(-4.177, 55.7644), 4326), 27700));
@@ -19,6 +17,7 @@ city_of_london_qid = "Q23311"
 
 app = Flask(__name__)
 app.config.from_object("config.default")
+database.init_app(app)
 
 
 def get_random_lat_lon():
@@ -70,7 +69,7 @@ def build_dict(hit, lat, lon):
 def do_lookup(elements, lat, lon):
     try:
         hit = osm_lookup(elements, lat, lon)
-    except geocode.wikidata.QueryError as e:
+    except wikidata.QueryError as e:
         return {
             "query": e.query,
             "error": e.r.text,
@@ -80,26 +79,6 @@ def do_lookup(elements, lat, lon):
     return build_dict(hit, lat, lon)
 
 
-def get_scotland_code(lat, lon):
-    conn = psycopg2.connect(**app.config["DB_PARAMS"])
-    cur = conn.cursor()
-
-    point = f"ST_Transform(ST_SetSRID(ST_MakePoint({lon}, {lat}), 4326), 27700)"
-    cur.execute(f"select code, name from scotland where st_contains(geom, {point});")
-    row = cur.fetchone()
-
-    # expand search, disabled for now 2020-04-20
-    if not row:
-        cur.execute(
-            f"select code, name from scotland where ST_DWithin(geom, {point}, 100);"
-        )
-        row = cur.fetchone()
-
-    conn.close()
-    if row:
-        return row[0]
-
-
 def wdqs_geosearch_query(lat, lon):
     if isinstance(lat, float):
         lat = f"{lat:f}"
@@ -107,7 +86,7 @@ def wdqs_geosearch_query(lat, lon):
         lon = f"{lon:f}"
 
     query = render_template("sparql/geosearch.sparql", lat=lat, lon=lon)
-    return geocode.wikidata.wdqs(query)
+    return wikidata.wdqs(query)
 
 
 def wdqs_geosearch(lat, lon):
@@ -142,7 +121,7 @@ def wdqs_geosearch(lat, lon):
 
 
 def lat_lon_to_wikidata(lat, lon):
-    scotland_code = get_scotland_code(lat, lon)
+    scotland_code = scotland.get_scotland_code(lat, lon)
 
     if scotland_code:
         rows = lookup_scottish_parish_in_wikidata(scotland_code)
@@ -152,7 +131,7 @@ def lat_lon_to_wikidata(lat, lon):
 
         return {"elements": elements, "result": result}
 
-    elements = geocode.overpass.get_osm_elements(lat, lon)
+    elements = overpass.get_osm_elements(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     # special case because the City of London is admin_level=6 in OSM
@@ -173,22 +152,21 @@ def lat_lon_to_wikidata(lat, lon):
     return {"elements": elements, "result": result}
 
 
-
 def lookup_scottish_parish_in_wikidata(code):
     query = render_template("sparql/scottish_parish.sparql", code=code)
-    return geocode.wikidata.wdqs(query)
+    return wikidata.wdqs(query)
 
 
 def lookup_gss_in_wikidata(gss):
     query = render_template("sparql/lookup_gss.sparql", gss=gss)
-    return geocode.wikidata.wdqs(query)
+    return wikidata.wdqs(query)
 
 
 def lookup_wikidata_by_name(name, lat, lon):
     query = render_template(
         "sparql/lookup_by_name.sparql", name=repr(name), lat=str(lat), lon=str(lon)
     )
-    return geocode.wikidata.wdqs(query)
+    return wikidata.wdqs(query)
 
 
 def unescape_title(t):
@@ -228,7 +206,7 @@ def osm_lookup(elements, lat, lon):
             continue
         if "wikidata" in tags:
             qid = tags["wikidata"]
-            commons = geocode.wikidata.qid_to_commons_category(qid)
+            commons = wikidata.qid_to_commons_category(qid)
             if commons:
                 return {
                     "wikidata": qid,
@@ -262,7 +240,7 @@ def osm_lookup(elements, lat, lon):
     qid = has_wikidata_tag[0]["wikidata"]
     return {
         "wikidata": qid,
-        "commons_cat": geocode.qid_to_commons_category(qid),
+        "commons_cat": wikidata.qid_to_commons_category(qid),
         "admin_level": admin_level,
     }
 
@@ -287,7 +265,7 @@ def index():
 def random_location():
     lat, lon = get_random_lat_lon()
 
-    elements = geocode.overpass.get_osm_elements(lat, lon)
+    elements = overpass.get_osm_elements(lat, lon)
     result = do_lookup(elements, lat, lon)
 
     return render_template(
@@ -300,7 +278,7 @@ def wikidata_tag():
     lat = float(request.args.get("lat"))
     lon = float(request.args.get("lon"))
 
-    scotland_code = get_scotland_code(lat, lon)
+    scotland_code = scotland.get_scotland_code(lat, lon)
 
     if scotland_code:
         rows = lookup_scottish_parish_in_wikidata(scotland_code)
@@ -308,7 +286,7 @@ def wikidata_tag():
         elements = []
         result = build_dict(hit, lat, lon)
     else:
-        elements = geocode.overpass.get_osm_elements(lat, lon)
+        elements = overpass.get_osm_elements(lat, lon)
         result = do_lookup(elements, lat, lon)
 
     return render_template(
