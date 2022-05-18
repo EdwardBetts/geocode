@@ -21,7 +21,12 @@ class Polygon(Base):
     way_area = Column(Float)
     tags = Column(postgresql.HSTORE)
     way = Column(Geometry("GEOMETRY", srid=4326, spatial_index=True), nullable=False)
-    area = column_property(func.ST_Area(way))
+    area = column_property(func.ST_Area(way, False))
+
+    @property
+    def osm_url(self):
+        osm_type = "way" if self.osm_id > 0 else "relation"
+        return f"https://www.openstreetmap.org/{osm_type}/{abs(self.osm_id)}"
 
     @hybrid_property
     def area_in_sq_km(self):
@@ -30,8 +35,9 @@ class Polygon(Base):
     @classmethod
     def coords_within(cls, lat, lon):
         point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-        return cls.query.filter(cls.admin_level.isnot(None),
-                                func.ST_Within(point, cls.way))
+        return (cls.query.filter(cls.admin_level.isnot(None),
+                                 func.ST_Within(point, cls.way))
+                         .order_by(cls.area))
 
 class Scotland(Base):
     __tablename__ = "scotland"
