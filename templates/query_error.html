@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geocode to commons</title>
+</head>
+
+<body>
+<h1>Geocode coordinates to Commons Category</h1>
+
+<p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
+
+| <a href="https://www.openstreetmap.org/#map=17/{{lat }}/{{ lon }}">view in OSM</a>
+
+| <a href="{{ url_for('detail_page', lat=lat, lon=lon) }}">#</a>
+
+</p>
+
+<h2>query</h2>
+
+<pre>{{ query }}</pre>
+
+<h2>reply</h2>
+
+<pre>{{ r.text }}</pre>
+
+</body>
+</html>

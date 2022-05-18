@@ -51,10 +51,10 @@ def lat_lon_to_wikidata(lat, lon):
     result = do_lookup(elements, lat, lon)
 
     # special case because the City of London is admin_level=6 in OSM
-    if result["wikidata"] == city_of_london_qid:
+    if result.get("wikidata") == city_of_london_qid:
         return {"elements": elements, "result": result}
 
-    admin_level = result["admin_level"]
+    admin_level = result.get("admin_level")
 
     if not admin_level or admin_level >= 7:
         return {"elements": elements, "result": result}
@@ -69,8 +69,6 @@ def lat_lon_to_wikidata(lat, lon):
 
 
 def osm_lookup(elements, lat, lon):
-    elements = sorted(elements, key=lambda e: e.area)
-
     for e in elements:
         tags = e.tags
         admin_level_tag = tags.get("admin_level")
@@ -177,7 +175,18 @@ def detail_page():
         lat, lon = [float(request.args.get(param)) for param in ("lat", "lon")]
     except TypeError:
         return redirect(url_for("index"))
-    reply = lat_lon_to_wikidata(lat, lon)
+    try:
+        reply = lat_lon_to_wikidata(lat, lon)
+    except wikidata.QueryError as e:
+        query, r = e.args
+        return render_template(
+            "query_error.html",
+            lat=lat,
+            lon=lon,
+            query=query,
+            r=r
+        )
+
     return render_template("detail.html", lat=lat, lon=lon, **reply)
 
 
