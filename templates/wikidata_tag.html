@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geocode to commons</title>
+<style>
+.text-end { text-align: right }
+</style>
+</head>
+
+<body>
+<h1>Geocode coordinates to Commons Category</h1>
+
+<p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
+
+| <a href="https://www.openstreetmap.org/#map=17/{{lat }}/{{ lon }}">view in OSM</a>
+
+{% if result.commons_cat %}
+| <a href="{{ result.commons_cat.url }}">Commons category</a>
+{% endif %}
+
+{% if result.wikidata %}
+  | <a href="https://www.wikidata.org/wiki/{{ result.wikidata }}">{{ result.wikidata }}</a>
+{% endif %}
+
+| <a href="{{ url_for('detail_page', lat=lat, lon=lon) }}">#</a>
+
+</p>
+
+<pre>{{ result | pprint }}</pre>
+
+{% if result.commons_cat %}
+<p>({{ lat }}, {{ lon }}, {{result.commons_cat.title | pprint }}),</p>
+{% endif %}
+
+<table>
+{% for e in elements %}
+{% set tags = e.tags %}
+<tr>
+  <td><a href="{{ e.osm_url }}">{{ tags.name }}</a></td>
+  <td>{{ tags.admin_level }}</td>
+  <td>{{ tags.boundary }}</td>
+  <td>{{ tags.designation }}</td>
+  <td class="text-end">{{ '{:,.0f}'.format(e.area_in_sq_km) }} km²</td>
+  <td>{{ 'wikidata' in tags }}</td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>
