@@ -1,8 +1,11 @@
-from flask import current_app
+"""Reverse geocode civil parishes in Scotland."""
+
 import psycopg2
+from flask import current_app
 
 
-def get_scotland_code(lat, lon):
+def get_scotland_code(lat: str | float, lon: str | float) -> str | None:
+    """Find civil parish in Scotland for given lat/lon."""
     conn = psycopg2.connect(**current_app.config["DB_PARAMS"])
     cur = conn.cursor()
 

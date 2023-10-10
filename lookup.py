@@ -1,9 +1,14 @@
 #!/usr/bin/python3
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-from geocode import wikidata, scotland, database, model
-import geocode
 import random
+import typing
+
+import sqlalchemy
+from flask import Flask, jsonify, redirect, render_template, request, url_for
+from werkzeug.wrappers import Response
+
+import geocode
+from geocode import database, model, scotland, wikidata
 
 city_of_london_qid = "Q23311"
 app = Flask(__name__)
@@ -11,8 +16,8 @@ app.config.from_object("config.default")
 database.init_app(app)
 
 
-def get_random_lat_lon():
-    """Select random lat/lon within the UK"""
+def get_random_lat_lon() -> tuple[float, float]:
+    """Select random lat/lon within the UK."""
     south, east = 50.8520, 0.3536
     north, west = 53.7984, -2.7296
 
@@ -23,7 +28,12 @@ def get_random_lat_lon():
     return lat, lon
 
 
-def do_lookup(elements, lat, lon):
+Elements = sqlalchemy.orm.query.Query[model.Polygon]
+
+
+def do_lookup(
+    elements: Elements, lat: str | float, lon: str | float
+) -> wikidata.WikidataDict:
     try:
         hit = osm_lookup(elements, lat, lon)
     except wikidata.QueryError as e:
@@ -36,9 +46,10 @@ def do_lookup(elements, lat, lon):
     return wikidata.build_dict(hit, lat, lon)
 
 
-def lat_lon_to_wikidata(lat, lon):
+def lat_lon_to_wikidata(lat: str | float, lon: str | float) -> dict[str, typing.Any]:
     scotland_code = scotland.get_scotland_code(lat, lon)
 
+    elements: typing.Any
     if scotland_code:
         rows = wikidata.lookup_scottish_parish_in_wikidata(scotland_code)
         hit = wikidata.commons_from_rows(rows)
@@ -55,6 +66,7 @@ def lat_lon_to_wikidata(lat, lon):
         return {"elements": elements, "result": result}
 
     admin_level = result.get("admin_level")
+    assert isinstance(admin_level, int)
 
     if not admin_level or admin_level >= 7:
         return {"elements": elements, "result": result}
@@ -68,11 +80,17 @@ def lat_lon_to_wikidata(lat, lon):
     return {"elements": elements, "result": result}
 
 
-def osm_lookup(elements, lat, lon):
+def osm_lookup(
+    elements: Elements, lat: str | float, lon: str | float
+) -> wikidata.Hit | None:
+    """OSM lookup."""
+    ret: wikidata.Hit | None
     for e in elements:
-        tags = e.tags
+        assert isinstance(e, model.Polygon)
+        assert e.tags
+        tags: typing.Mapping[str, typing.Any] = e.tags
         admin_level_tag = tags.get("admin_level")
-        admin_level = (
+        admin_level: int | None = (
             int(admin_level_tag)
             if admin_level_tag and admin_level_tag.isdigit()
             else None
@@ -108,24 +126,36 @@ def osm_lookup(elements, lat, lon):
                 ret["admin_level"] = admin_level
                 return ret
 
-    has_wikidata_tag = [e.tags for e in elements if e.tags.get("wikidata")]
+    has_wikidata_tag = [
+        e.tags for e in elements if e.tags.get("wikidata")  # type: ignore
+    ]
     if len(has_wikidata_tag) != 1:
-        return
+        return None
 
+    assert has_wikidata_tag[0]
     qid = has_wikidata_tag[0]["wikidata"]
-    return {
-        "wikidata": qid,
-        "commons_cat": wikidata.qid_to_commons_category(qid),
-        "admin_level": admin_level,
-    }
+    return typing.cast(
+        wikidata.Hit,
+        {
+            "wikidata": qid,
+            "commons_cat": wikidata.qid_to_commons_category(qid),
+            "admin_level": admin_level,
+        },
+    )
+
+
+def redirect_to_detail(q: str) -> Response:
+    """Redirect to detail page."""
+    lat, lon = [v.strip() for v in q.split(",", 1)]
+    return redirect(url_for("detail_page", lat=lat, lon=lon))
 
 
 @app.route("/")
-def index():
+def index() -> str | Response:
+    """Index page."""
     q = request.args.get("q")
     if q and q.strip():
-        lat, lon = [v.strip() for v in q.split(",", 1)]
-        return redirect(url_for("detail_page", lat=lat, lon=lon))
+        return redirect_to_detail(q)
 
     lat, lon = request.args.get("lat"), request.args.get("lon")
 
@@ -137,7 +167,8 @@ def index():
 
 
 @app.route("/random")
-def random_location():
+def random_location() -> str:
+    """Return detail page for random lat/lon."""
     lat, lon = get_random_lat_lon()
 
     elements = model.Polygon.coords_within(lat, lon)
@@ -149,12 +180,14 @@ def random_location():
 
 
 @app.route("/wikidata_tag")
-def wikidata_tag():
-    lat = float(request.args.get("lat"))
-    lon = float(request.args.get("lon"))
+def wikidata_tag() -> str:
+    """Lookup Wikidata tag for lat/lon."""
+    lat_str, lon_str = request.args["lat"], request.args["lon"]
+    lat, lon = float(lat_str), float(lon_str)
 
     scotland_code = scotland.get_scotland_code(lat, lon)
 
+    elements: typing.Any
     if scotland_code:
         rows = wikidata.lookup_scottish_parish_in_wikidata(scotland_code)
         hit = wikidata.commons_from_rows(rows)
@@ -170,9 +203,11 @@ def wikidata_tag():
 
 
 @app.route("/detail")
-def detail_page():
+def detail_page() -> Response | str:
+    """Detail page."""
     try:
-        lat, lon = [float(request.args.get(param)) for param in ("lat", "lon")]
+        lat_str, lon_str = request.args["lat"], request.args["lon"]
+        lat, lon = float(lat_str), float(lon_str)
     except TypeError:
         return redirect(url_for("index"))
     try:

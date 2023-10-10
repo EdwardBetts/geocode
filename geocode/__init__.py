@@ -1,3 +1,6 @@
+"""Reverse geocode for Wikidata and Wikimedia Commons."""
+
+
 headers = {"User-Agent": "UK gecode/0.1 (edward@4angle.com)"}
 
 samples = [
