@@ -2,7 +2,6 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from geocode import wikidata, scotland, database, model
-from pprint import pprint
 import geocode
 import random
 
