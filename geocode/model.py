@@ -4,7 +4,7 @@ from sqlalchemy.types import Integer, Float, Numeric, String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import column_property
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import func
+from sqlalchemy import func, cast
 
 from geoalchemy2 import Geometry
 from .database import session
@@ -36,8 +36,9 @@ class Polygon(Base):
     def coords_within(cls, lat, lon):
         point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
         return (cls.query.filter(cls.admin_level.isnot(None),
+                                 cls.admin_level.regexp_match("^\d+$"),
                                  func.ST_Within(point, cls.way))
-                         .order_by(cls.area))
+                         .order_by(cls.area, cast(cls.admin_level, Integer).desc()))
 
 class Scotland(Base):
     __tablename__ = "scotland"

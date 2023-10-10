@@ -2,6 +2,7 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from geocode import wikidata, scotland, database, model
+from pprint import pprint
 import geocode
 import random
 
@@ -108,7 +109,7 @@ def osm_lookup(elements, lat, lon):
                 ret["admin_level"] = admin_level
                 return ret
 
-    has_wikidata_tag = [e["tags"] for e in elements if "wikidata" in e["tags"]]
+    has_wikidata_tag = [e.tags for e in elements if e.tags.get("wikidata")]
     if len(has_wikidata_tag) != 1:
         return
 

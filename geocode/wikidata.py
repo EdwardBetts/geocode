@@ -148,10 +148,15 @@ def build_dict(hit, lat, lon):
     if hit is None:
         return dict(commons_cat=None, missing=True, coords=coords)
     commons_cat = hit["commons_cat"]
-    url = commons_cat_start + urllib.parse.quote(commons_cat.replace(" ", "_"))
-    return dict(
-        commons_cat={"title": commons_cat, "url": url},
+    ret = dict(
         coords=coords,
         admin_level=hit.get("admin_level"),
         wikidata=hit["wikidata"],
     )
+    if not commons_cat:
+        return ret
+
+    url = commons_cat_start + urllib.parse.quote(commons_cat.replace(" ", "_"))
+    ret["commons_cat"] = {"title": commons_cat, "url": url}
+
+    return ret
