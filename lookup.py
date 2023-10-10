@@ -12,7 +12,7 @@ database.init_app(app)
 
 
 def get_random_lat_lon():
-    """ Select random lat/lon within the UK """
+    """Select random lat/lon within the UK"""
     south, east = 50.8520, 0.3536
     north, west = 53.7984, -2.7296
 
@@ -179,13 +179,7 @@ def detail_page():
         reply = lat_lon_to_wikidata(lat, lon)
     except wikidata.QueryError as e:
         query, r = e.args
-        return render_template(
-            "query_error.html",
-            lat=lat,
-            lon=lon,
-            query=query,
-            r=r
-        )
+        return render_template("query_error.html", lat=lat, lon=lon, query=query, r=r)
 
     return render_template("detail.html", lat=lat, lon=lon, **reply)
 

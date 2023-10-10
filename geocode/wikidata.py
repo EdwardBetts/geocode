@@ -65,6 +65,7 @@ def wd_uri_to_qid(value):
     assert value.startswith(wd_entity)
     return value[len(wd_entity) - 1 :]
 
+
 def geosearch_query(lat, lon):
     if isinstance(lat, float):
         lat = f"{lat:f}"

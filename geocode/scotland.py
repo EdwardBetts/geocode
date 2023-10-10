@@ -1,6 +1,7 @@
 from flask import current_app
 import psycopg2
 
+
 def get_scotland_code(lat, lon):
     conn = psycopg2.connect(**current_app.config["DB_PARAMS"])
     cur = conn.cursor()

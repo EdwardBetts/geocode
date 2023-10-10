@@ -12,6 +12,7 @@ from .database import session
 Base = declarative_base()
 Base.query = session.query_property()
 
+
 class Polygon(Base):
     __tablename__ = "planet_osm_polygon"
 
@@ -35,10 +36,12 @@ class Polygon(Base):
     @classmethod
     def coords_within(cls, lat, lon):
         point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-        return (cls.query.filter(cls.admin_level.isnot(None),
-                                 cls.admin_level.regexp_match("^\d+$"),
-                                 func.ST_Within(point, cls.way))
-                         .order_by(cls.area, cast(cls.admin_level, Integer).desc()))
+        return cls.query.filter(
+            cls.admin_level.isnot(None),
+            cls.admin_level.regexp_match("^\d+$"),
+            func.ST_Within(point, cls.way),
+        ).order_by(cls.area, cast(cls.admin_level, Integer).desc())
+
 
 class Scotland(Base):
     __tablename__ = "scotland"
@@ -54,4 +57,3 @@ class Scotland(Base):
     name = Column(String(50))
 
     geom = Column(Geometry("MULTIPOLYGON", srid=27700))
-
