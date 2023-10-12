@@ -1,7 +1,7 @@
 SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSiteLink WHERE {
   {
     SELECT DISTINCT ?item ?location ?distance ?isa WHERE {
-      ?item wdt:P31/wdt:P279* wd:Q486972.
+      ?item wdt:P31/wdt:P279* wd:Q486972 .
       ?item wdt:P31 ?isa .
       SERVICE wikibase:around {
         ?item wdt:P625 ?location.
@@ -12,7 +12,10 @@ SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSi
     }
   }
   MINUS { ?item wdt:P582 ?endTime . }
-  MINUS { ?item wdt:P31 wd:Q1497375 . }
+  MINUS {
+    VALUES ?isNot { wd:Q1497375 wd:Q1497364 wd:Q92086 wd:Q31028835 }
+    ?item wdt:P31 ?isNot .
+  }
   OPTIONAL { ?item wdt:P373 ?commonsCat. }
   OPTIONAL { ?commonsSiteLink schema:about ?item;
              schema:isPartOf <https://commons.wikimedia.org/>. }
