@@ -1,11 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Geocode to commons</title>
-</head>
+{% extends "base.html" %}
 
-<body>
+{% block title %}Geocode to Commons{% endblock %}
+
+{% block content %}
+<div class="m-3">
 <h1>Geocode coordinates to Commons Category</h1>
 
 <p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
@@ -24,17 +22,32 @@
 
 </p>
 
-<pre>{{ result | pprint }}</pre>
+<h4>API returns</h4>
+<pre>{{ result | tojson(indent=2) }}</pre>
+
+{% if result.wikidata %}
+<p><strong>Wikidata item</strong>: <a href="https://www.wikidata.org/wiki/{{ result.wikidata }}">{{ result.wikidata }}</a></p>
+{% endif %}
 
 {% if result.commons_cat %}
-<p>({{ lat }}, {{ lon }}, {{result.commons_cat.title | pprint }}),</p>
+<p><strong>Commons category</strong>: <a href="{{ result.commons_cat.url }}">{{result.commons_cat.title }}</a></p>
+{% endif %}
+
+{% if elements %}
+<p>{{ elements.count() }} surrounding elements found</p>
+{% else %}
+<p>No elements found</p>
 {% endif %}
 
 {% for element in elements %}
 {% set tags = element.tags %}
-  <pre>{{ element.tags | pprint }}</pre>
+<div class="rounded border border-4 p-1 my-2{% if element_id == element.osm_id %} bg-primary-subtle{% endif %}">
+  {% for key, value in element.tags.items() if not (key == "way_area" or "name:" in key or key.startswith("source")) %}
+  <div><strong>{{ key }}</strong>: {{ value }}</div>
+  {% endfor %}
+  </div>
 {% endfor %}
 
 
-</body>
-</html>
+</div>
+{% endblock %}

@@ -1,11 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Geocode to commons</title>
-</head>
+{% extends "base.html" %}
 
-<body>
+{% block title %}Geocode to Commons{% endblock %}
+
+{% block content %}
+<div class="m-3">
 <h1>Geocode coordinates to Commons Category</h1>
 
 <ol>
@@ -33,6 +31,6 @@ Latitude/Longitude: <input name="q"/> (e.g. 54.375, -2.999) <input type="submit"
 </ul>
 
 <p>source code: <a href="https://github.com/EdwardBetts/uk-geocode">https://github.com/EdwardBetts/uk-geocode</a></p>
+</div>
 
-</body>
-</html>
+{% endblock %}

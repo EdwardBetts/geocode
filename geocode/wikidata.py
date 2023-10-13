@@ -153,7 +153,7 @@ def unescape_title(t: str) -> str:
     return urllib.parse.unquote(t.replace("_", " "))
 
 
-Hit = dict[str, str | None]
+Hit = dict[str, str | int | None]
 
 
 def commons_from_rows(rows: list[Row]) -> Hit | None:
@@ -188,6 +188,7 @@ def build_dict(hit: Hit | None, lat: str | float, lon: str | float) -> WikidataD
         "coords": coords,
         "admin_level": hit.get("admin_level"),
         "wikidata": hit["wikidata"],
+        "element": hit.get("element"),
     }
     if not commons_cat:
         return ret

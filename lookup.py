@@ -28,7 +28,7 @@ def get_random_lat_lon() -> tuple[float, float]:
     return lat, lon
 
 
-Elements = sqlalchemy.orm.query.Query[model.Polygon]
+Elements = sqlalchemy.orm.query.Query
 
 
 def do_lookup(
@@ -80,7 +80,7 @@ def lat_lon_to_wikidata(lat: str | float, lon: str | float) -> dict[str, typing.
 
 
 def osm_lookup(
-    elements: Elements, lat: str | float, lon: str | float
+    elements: Elements, lat: str | float, lon: str | float  # type:ignore
 ) -> wikidata.Hit | None:
     """OSM lookup."""
     ret: wikidata.Hit | None
@@ -104,12 +104,14 @@ def osm_lookup(
                     "wikidata": qid,
                     "commons_cat": commons,
                     "admin_level": admin_level,
+                    "element": e.osm_id,
                 }
         gss = tags.get("ref:gss")
         if gss:
             ret = wikidata.get_commons_cat_from_gss(gss)
             if ret:
                 ret["admin_level"] = admin_level
+                ret["element"] = e.osm_id
                 return ret
 
         name = tags.get("name")
@@ -123,11 +125,10 @@ def osm_lookup(
             ret = wikidata.commons_from_rows(rows)
             if ret:
                 ret["admin_level"] = admin_level
+                ret["element"] = e.osm_id
                 return ret
 
-    has_wikidata_tag = [
-        e.tags for e in elements if e.tags.get("wikidata")  # type: ignore
-    ]
+    has_wikidata_tag = [e.tags for e in elements if e.tags.get("wikidata")]
     if len(has_wikidata_tag) != 1:
         return None
 
@@ -159,7 +160,9 @@ def index() -> str | Response:
     lat, lon = request.args.get("lat"), request.args.get("lon")
 
     if lat is not None and lon is not None:
-        return jsonify(lat_lon_to_wikidata(lat, lon)["result"])
+        result = lat_lon_to_wikidata(lat, lon)["result"]
+        result.pop("element", None)
+        return jsonify(result)
 
     samples = sorted(geocode.samples, key=lambda row: row[2])
     return render_template("index.html", samples=samples)
@@ -215,7 +218,11 @@ def detail_page() -> Response | str:
         query, r = e.args
         return render_template("query_error.html", lat=lat, lon=lon, query=query, r=r)
 
-    return render_template("detail.html", lat=lat, lon=lon, **reply)
+    element = reply["result"].pop("element", None)
+
+    return render_template(
+        "detail.html", lat=lat, lon=lon, str=str, element_id=element, **reply
+    )
 
 
 if __name__ == "__main__":
