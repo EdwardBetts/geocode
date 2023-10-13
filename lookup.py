@@ -66,7 +66,6 @@ def lat_lon_to_wikidata(lat: str | float, lon: str | float) -> dict[str, typing.
         return {"elements": elements, "result": result}
 
     admin_level = result.get("admin_level")
-    assert isinstance(admin_level, int)
 
     if not admin_level or admin_level >= 7:
         return {"elements": elements, "result": result}

@@ -1,8 +1,9 @@
 """Database model."""
 
 import sqlalchemy
+import sqlalchemy.orm.query
 from geoalchemy2 import Geometry
-from sqlalchemy import cast, func
+from sqlalchemy import and_, cast, func, or_
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -13,7 +14,7 @@ from sqlalchemy.types import Float, Integer, Numeric, String
 from .database import session
 
 Base = declarative_base()
-Base.query = session.query_property()
+Base.query = session.query_property()  # type:ignore
 
 
 class Polygon(Base):
@@ -23,6 +24,7 @@ class Polygon(Base):
 
     osm_id = Column(Integer, primary_key=True, autoincrement=False)
     admin_level = Column(String)
+    boundary = Column(String)
 
     way_area = Column(Float)
     tags = Column(postgresql.HSTORE)
@@ -43,15 +45,20 @@ class Polygon(Base):
     @classmethod
     def coords_within(
         cls, lat: str | float, lon: str | float
-    ) -> sqlalchemy.orm.query.Query["Polygon"]:
+    ) -> sqlalchemy.orm.query.Query:  # type: ignore
         """Polygons that contain given coordinates."""
         point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-        q: sqlalchemy.orm.query.Query["Polygon"] = cls.query.filter(
-            cls.admin_level.isnot(None),
-            cls.admin_level.regexp_match("^\d+$"),
+        q = cls.query.filter(  # type: ignore
+            or_(
+                cls.boundary == "political",
+                and_(
+                    cls.admin_level.isnot(None),  # type: ignore
+                    cls.admin_level.regexp_match(r"^\d+$"),  # type: ignore
+                ),
+            ),
             func.ST_Within(point, cls.way),
         ).order_by(cls.area, cast(cls.admin_level, Integer).desc())
-        return q
+        return q  # type: ignore
 
 
 class Scotland(Base):

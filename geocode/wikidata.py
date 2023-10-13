@@ -107,6 +107,7 @@ def geosearch(lat: str | float, lon: str | float) -> Row | None:
         "Q5084": 1,  # hamlet
         "Q515": 2,  # city
         "Q1549591": 3,  # big city
+        "Q589282": 2,  # ward or electoral division of the United Kingdom
     }
     for row in rows:
         isa = wd_uri_to_qid(row["isa"]["value"])
