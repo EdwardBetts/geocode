@@ -1,5 +1,5 @@
 SELECT DISTINCT ?item ?itemLabel ?commonsSiteLink ?commonsCat WHERE {
-  ?item rdfs:label {{ name }}@en .
+  { ?item rdfs:label {{ name }}@en } UNION { ?item skos:altLabel {{ name }}@en }
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q17362920 } .# ignore Wikimedia duplicated page
   OPTIONAL { ?commonsSiteLink schema:about ?item ;
              schema:isPartOf <https://commons.wikimedia.org/> }
