@@ -105,6 +105,7 @@ def osm_lookup(
                     "commons_cat": commons,
                     "admin_level": admin_level,
                     "element": e.osm_id,
+                    "geojson": typing.cast(str, e.geojson_str),
                 }
         gss = tags.get("ref:gss")
         if gss:
@@ -112,6 +113,7 @@ def osm_lookup(
             if ret:
                 ret["admin_level"] = admin_level
                 ret["element"] = e.osm_id
+                ret["geojson"] = typing.cast(str, e.geojson_str)
                 return ret
 
         name = tags.get("name")
@@ -162,6 +164,7 @@ def index() -> str | Response:
     if lat is not None and lon is not None:
         result = lat_lon_to_wikidata(lat, lon)["result"]
         result.pop("element", None)
+        result.pop("geojson", None)
         return jsonify(result)
 
     samples = sorted(geocode.samples, key=lambda row: row[2])
@@ -219,9 +222,16 @@ def detail_page() -> Response | str:
         return render_template("query_error.html", lat=lat, lon=lon, query=query, r=r)
 
     element = reply["result"].pop("element", None)
+    geojson = reply["result"].pop("geojson", None)
 
     return render_template(
-        "detail.html", lat=lat, lon=lon, str=str, element_id=element, **reply
+        "detail.html",
+        lat=lat,
+        lon=lon,
+        str=str,
+        element_id=element,
+        geojson=geojson,
+        **reply
     )
 
 

@@ -14,7 +14,7 @@ from sqlalchemy.types import Float, Integer, Numeric, String
 from .database import session
 
 Base = declarative_base()
-Base.query = session.query_property()  # type:ignore
+Base.query = session.query_property()
 
 
 class Polygon(Base):
@@ -30,6 +30,9 @@ class Polygon(Base):
     tags = Column(postgresql.HSTORE)
     way = Column(Geometry("GEOMETRY", srid=4326, spatial_index=True), nullable=False)
     area = column_property(func.ST_Area(way, False))
+    geojson_str = column_property(
+        func.ST_AsGeoJSON(way, maxdecimaldigits=6), deferred=True
+    )
 
     @property
     def osm_url(self) -> str:
@@ -48,7 +51,7 @@ class Polygon(Base):
     ) -> sqlalchemy.orm.query.Query:  # type: ignore
         """Polygons that contain given coordinates."""
         point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-        q = cls.query.filter(  # type: ignore
+        q = cls.query.filter(
             or_(
                 cls.boundary == "political",
                 and_(

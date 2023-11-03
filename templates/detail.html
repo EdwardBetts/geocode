@@ -2,8 +2,64 @@
 
 {% block title %}Geocode to Commons{% endblock %}
 
+{% block link %}
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+{% endblock %}
+
+{% block script %}
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+<script>
+  var map = L.map('map').setView([{{ lat }}, {{ lon }}], 13);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+  var marker = L.marker([{{ lat }} , {{ lon }}]).addTo(map);
+
+{% if geojson %}
+
+  L.geoJSON({{ geojson  | safe }}).addTo(map);
+
+  {% endif %}
+
+</script>
+
+{% endblock %}
+
+{% block style %}
+<style>
+/*
+#map {
+  width: 600px;
+  height: 600px;
+}
+*/
+
+/* Styles for the map */
+#map {
+    position: fixed;   /* This keeps the map in place when the page is scrolled */
+    top: 0;            /* Starting from the top edge of the browser window */
+    right: 0;          /* Positioned on the right side */
+    width: 50%;        /* Half the screen width */
+    height: 100%;      /* Full height of the browser window */
+}
+
+#main {
+  width: 48%
+}
+
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="m-3">
+<div id="map"></div>
+<div class="m-3" id="main">
 <h1>Geocode coordinates to Commons Category</h1>
 
 <p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
@@ -47,7 +103,6 @@
   {% endfor %}
   </div>
 {% endfor %}
-
 
 </div>
 {% endblock %}

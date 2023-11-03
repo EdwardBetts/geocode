@@ -189,6 +189,7 @@ def build_dict(hit: Hit | None, lat: str | float, lon: str | float) -> WikidataD
         "admin_level": hit.get("admin_level"),
         "wikidata": hit["wikidata"],
         "element": hit.get("element"),
+        "geojson": hit.get("geojson"),
     }
     if not commons_cat:
         return ret
