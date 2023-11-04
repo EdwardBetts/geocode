@@ -37,5 +37,5 @@ samples = [
     (51.9687, -0.0327, "Buckland, Hertfordshire"),
     (51.0804, -2.3263, "Zeals"),
     (55.7644, -4.1770, "East Kilbride"),
-    (51.4520, -2.6210, "Bristol"),
+    (51.4520, -2.6210, "Hotwells, Bristol"),
 ]
