@@ -188,16 +188,10 @@ def index() -> str | Response:
 
 
 @app.route("/random")
-def random_location() -> str:
+def random_location() -> str | Response:
     """Return detail page for random lat/lon."""
     lat, lon = get_random_lat_lon()
-
-    elements = model.Polygon.coords_within(lat, lon)
-    result = do_lookup(elements, lat, lon)
-
-    return render_template(
-        "detail.html", lat=lat, lon=lon, result=result, elements=elements
-    )
+    return build_detail_page(lat, lon)
 
 
 @app.route("/wikidata_tag")
@@ -223,14 +217,8 @@ def wikidata_tag() -> str:
     )
 
 
-@app.route("/detail")
-def detail_page() -> Response | str:
-    """Detail page."""
-    try:
-        lat_str, lon_str = request.args["lat"], request.args["lon"]
-        lat, lon = float(lat_str), float(lon_str)
-    except TypeError:
-        return redirect(url_for("index"))
+def build_detail_page(lat: float, lon: float) -> str:
+    """Run lookup and build detail page."""
     try:
         reply = lat_lon_to_wikidata(lat, lon)
     except wikidata.QueryError as e:
@@ -249,6 +237,18 @@ def detail_page() -> Response | str:
         geojson=geojson,
         **reply,
     )
+
+
+@app.route("/detail")
+def detail_page() -> Response | str:
+    """Detail page."""
+    try:
+        lat_str, lon_str = request.args["lat"], request.args["lon"]
+        lat, lon = float(lat_str), float(lon_str)
+    except TypeError:
+        return redirect(url_for("index"))
+
+    return build_detail_page(lat, lon)
 
 
 if __name__ == "__main__":
