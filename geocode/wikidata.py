@@ -43,18 +43,36 @@ def get_entity(qid: str) -> dict[str, typing.Any] | None:
     return entity if "missing" not in entity else None
 
 
-def qid_to_commons_category(qid: str) -> str | None:
+def qid_to_commons_category(qid: str, check_p910: bool = True) -> str | None:
     """Commons category for a given Wikidata item."""
     entity = get_entity(qid)
+    cat_start = "Category:"
     if not entity:
         return None
-    commons_cat: str | None
-    try:
-        commons_cat = entity["claims"]["P373"][0]["mainsnak"]["datavalue"]["value"]
-    except Exception:
-        commons_cat = None
 
-    return commons_cat
+    try:
+        cat: str = entity["claims"]["P373"][0]["mainsnak"]["datavalue"]["value"]
+        return cat
+    except Exception:
+        pass
+
+    try:
+        sitelink = entity["sitelinks"]["commonswiki"]["title"]
+    except KeyError:
+        sitelink = None
+
+    if sitelink:
+        return sitelink[len(cat_start) :] if sitelink.startswith(cat_start) else None
+
+    if not check_p910:
+        return None
+
+    try:
+        cat_qid = entity["claims"]["P910"][0]["mainsnak"]["datavalue"]["value"]["id"]
+    except Exception:
+        return None
+
+    return qid_to_commons_category(cat_qid, check_p910=False)
 
 
 Row = dict[str, dict[str, typing.Any]]
