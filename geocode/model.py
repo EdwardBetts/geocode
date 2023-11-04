@@ -54,6 +54,7 @@ class Polygon(Base):
         q = cls.query.filter(
             or_(
                 cls.boundary == "political",
+                cls.boundary == "place",
                 and_(
                     cls.admin_level.isnot(None),  # type: ignore
                     cls.admin_level.regexp_match(r"^\d+$"),  # type: ignore

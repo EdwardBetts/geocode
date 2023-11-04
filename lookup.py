@@ -134,7 +134,7 @@ def osm_lookup(
         assert e.tags
         tags: typing.Mapping[str, str] = e.tags
         admin_level: int | None = get_admin_level(tags)
-        if not admin_level and tags.get("boundary") != "political":
+        if not admin_level and tags.get("boundary") not in ("political", "place"):
             continue
         if not (
             (hit := hit_from_wikidata_tag(tags))
