@@ -3,8 +3,8 @@
 import random
 import typing
 
-import sqlalchemy
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+from sqlalchemy.orm.query import Query
 from werkzeug.wrappers import Response
 
 import geocode
@@ -16,7 +16,6 @@ app.config.from_object("config.default")
 database.init_app(app)
 
 Tags = typing.Mapping[str, str]
-Elements = sqlalchemy.orm.query.Query[model.Polygon]
 
 
 def get_random_lat_lon() -> tuple[float, float]:
@@ -32,7 +31,7 @@ def get_random_lat_lon() -> tuple[float, float]:
 
 
 def do_lookup(
-    elements: Elements, lat: str | float, lon: str | float
+    elements: "Query[model.Polygon]", lat: str | float, lon: str | float
 ) -> wikidata.WikidataDict:
     """Do lookup."""
     try:
@@ -125,7 +124,7 @@ def hit_from_name(
 
 
 def osm_lookup(
-    elements: Elements, lat: str | float, lon: str | float
+    elements: "Query[model.Polygon]", lat: str | float, lon: str | float
 ) -> wikidata.Hit | None:
     """OSM lookup."""
     ret: wikidata.Hit | None
