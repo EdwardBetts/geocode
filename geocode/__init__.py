@@ -38,4 +38,9 @@ samples = [
     (51.0804, -2.3263, "Zeals"),
     (55.7644, -4.1770, "East Kilbride"),
     (51.4520, -2.6210, "Hotwells, Bristol"),
+    (51.486, -0.089, "Camberwell and Peckham"),
+    (52.9469, 0.1324, "England"),
+    (52.9953, -2.1768, "Stoke-on-Trent"),
+    (50.8553, -0.1192, "Hollingbury Castle"),
+    (51.4564, -0.6486, "Windsor"),
 ]
