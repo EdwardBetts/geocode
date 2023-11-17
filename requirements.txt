@@ -1,0 +1,6 @@
+GeoAlchemy2
+flask
+psycopg2
+simplejson
+sqlalchemy
+requests
