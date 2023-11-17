@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+"""Reverse geocode: convert lat/lon to Wikidata item & Wikimedia Commons category."""
 
 import random
 import typing
