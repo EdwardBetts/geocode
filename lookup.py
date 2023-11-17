@@ -3,6 +3,7 @@
 import random
 import typing
 
+import sqlalchemy.exc
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from sqlalchemy.orm.query import Query
 from werkzeug.wrappers import Response
@@ -168,9 +169,16 @@ def redirect_to_detail(q: str) -> Response:
     return redirect(url_for("detail_page", lat=lat, lon=lon))
 
 
+@app.errorhandler(sqlalchemy.exc.OperationalError)
+def handle_database_error(error: Exception) -> tuple[str, int]:
+    """Show error screen on database error."""
+    return render_template("database_error.html"), 500
+
+
 @app.route("/")
 def index() -> str | Response:
     """Index page."""
+    database.session.execute("SELECT 1")
     q = request.args.get("q")
     if q and q.strip():
         return redirect_to_detail(q)
@@ -242,6 +250,7 @@ def build_detail_page(lat: float, lon: float) -> str:
 @app.route("/detail")
 def detail_page() -> Response | str:
     """Detail page."""
+    database.session.execute("SELECT 1")
     try:
         lat_str, lon_str = request.args["lat"], request.args["lon"]
         lat, lon = float(lat_str), float(lon_str)
