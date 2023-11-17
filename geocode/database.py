@@ -7,7 +7,7 @@ session = scoped_session(sessionmaker())
 
 
 def init_db(db_url: str, echo: bool = False) -> None:
-    """Initialise databsae."""
+    """Initialise database."""
     session.configure(bind=get_engine(db_url, echo=echo))
 
 
