@@ -93,4 +93,5 @@ class LookupLog(Base):
     lat = Column(Float)
     lon = Column(Float)
     remote_addr = Column(String)
+    fqdn = Column(String)
     result = Column(postgresql.JSONB)

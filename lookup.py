@@ -2,6 +2,7 @@
 """Reverse geocode: convert lat/lon to Wikidata item & Wikimedia Commons category."""
 
 import random
+import socket
 import typing
 
 import sqlalchemy.exc
@@ -18,6 +19,7 @@ app.config.from_object("config.default")
 database.init_app(app)
 
 Tags = typing.Mapping[str, str]
+logging_enabled = True
 
 
 def get_random_lat_lon() -> tuple[float, float]:
@@ -193,11 +195,17 @@ def index() -> str | Response:
     result = lat_lon_to_wikidata(lat, lon)["result"]
     result.pop("element", None)
     result.pop("geojson", None)
-    log = model.LookupLog(
-        lat=lat, lon=lon, remote_addr=request.remote_addr, result=result
-    )
-    database.session.add(log)
-    database.session.commit()
+    if logging_enabled:
+        remote_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+        log = model.LookupLog(
+            lat=lat,
+            lon=lon,
+            remote_addr=remote_addr,
+            fqdn=socket.getfqdn(remote_addr),
+            result=result,
+        )
+        database.session.add(log)
+        database.session.commit()
     return jsonify(result)
 
 
