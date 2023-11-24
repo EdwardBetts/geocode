@@ -186,14 +186,19 @@ def index() -> str | Response:
 
     lat, lon = request.args.get("lat"), request.args.get("lon")
 
-    if lat is not None and lon is not None:
-        result = lat_lon_to_wikidata(lat, lon)["result"]
-        result.pop("element", None)
-        result.pop("geojson", None)
-        return jsonify(result)
+    if lat is None or lon is None:
+        samples = sorted(geocode.samples, key=lambda row: row[2])
+        return render_template("index.html", samples=samples)
 
-    samples = sorted(geocode.samples, key=lambda row: row[2])
-    return render_template("index.html", samples=samples)
+    result = lat_lon_to_wikidata(lat, lon)["result"]
+    result.pop("element", None)
+    result.pop("geojson", None)
+    log = model.LookupLog(
+        lat=lat, lon=lon, remote_addr=request.remote_addr, result=result
+    )
+    database.session.add(log)
+    database.session.commit()
+    return jsonify(result)
 
 
 @app.route("/random")

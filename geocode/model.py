@@ -9,9 +9,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import column_property
 from sqlalchemy.schema import Column
-from sqlalchemy.types import Float, Integer, Numeric, String
+from sqlalchemy.types import DateTime, Float, Integer, Numeric, String
 
-from .database import session
+from .database import now_utc, session
 
 Base = declarative_base()
 Base.query = session.query_property()
@@ -81,3 +81,16 @@ class Scotland(Base):
     name = Column(String(50))
 
     geom = Column(Geometry("MULTIPOLYGON", srid=27700))
+
+
+class LookupLog(Base):
+    """Log lookups."""
+
+    __tablename__ = "lookup_log"
+
+    id = Column(Integer, primary_key=True)
+    dt = Column(DateTime, default=now_utc())
+    lat = Column(Float)
+    lon = Column(Float)
+    remote_addr = Column(String)
+    result = Column(postgresql.JSONB)
