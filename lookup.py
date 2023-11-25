@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 """Reverse geocode: convert lat/lon to Wikidata item & Wikimedia Commons category."""
 
+import inspect
 import random
 import socket
+import sys
+import traceback
 import typing
 
 import sqlalchemy.exc
+import werkzeug.debug.tbtools
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from sqlalchemy.orm.query import Query
 from werkzeug.wrappers import Response
@@ -22,6 +26,33 @@ setup_error_mail(app)
 
 Tags = typing.Mapping[str, str]
 logging_enabled = True
+
+
+@app.errorhandler(werkzeug.exceptions.InternalServerError)
+def exception_handler(e: werkzeug.exceptions.InternalServerError) -> tuple[str, int]:
+    """Handle exception."""
+    exec_type, exc_value, current_traceback = sys.exc_info()
+    assert exc_value
+    tb = werkzeug.debug.tbtools.DebugTraceback(exc_value)
+
+    summary = tb.render_traceback_html(include_title=False)
+    exc_lines = "".join(tb._te.format_exception_only())
+
+    last_frame = list(traceback.walk_tb(current_traceback))[-1][0]
+    last_frame_args = inspect.getargs(last_frame.f_code)
+
+    return (
+        render_template(
+            "show_error.html",
+            plaintext=tb.render_traceback_text(),
+            exception=exc_lines,
+            exception_type=tb._te.exc_type.__name__,
+            summary=summary,
+            last_frame=last_frame,
+            last_frame_args=last_frame_args,
+        ),
+        500,
+    )
 
 
 def get_random_lat_lon() -> tuple[float, float]:

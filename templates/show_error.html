@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block style %}
+<link rel="stylesheet" href="{{url_for('static', filename='css/exception.css')}}" />
+{% endblock %}
+
+{% block content %}
+<div class="p-2">
+
+<h1>Software error: {{ exception_type }}</h1>
+<div>
+  <pre>{{ exception }}</pre>
+</div>
+
+<h2 class="traceback">Traceback <em>(most recent call last)</em></h2>
+{{ summary | safe }}
+
+<p>Error in function "{{ last_frame.f_code.co_name }}": {{ last_frame_args | pprint }}</p>
+<pre>{{ last_frame.f_locals | pprint }}</pre>
+
+</div>
+
+{% endblock %}
