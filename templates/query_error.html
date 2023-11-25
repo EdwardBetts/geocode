@@ -1,28 +1,41 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Geocode to commons</title>
-</head>
+{% extends "base.html" %}
 
-<body>
+{% block title %}Geocode to Commons: error{% endblock %}
+
+{% block content %}
+<div class="m-3">
 <h1>Geocode coordinates to Commons Category</h1>
 
-<p><a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
-
-| <a href="https://www.openstreetmap.org/#map=17/{{lat }}/{{ lon }}">view in OSM</a>
-
-| <a href="{{ url_for('detail_page', lat=lat, lon=lon) }}">#</a>
-
+<p>
+<a href="{{ url_for('index') }}">home</a>
+|
+<a href="{{ url_for('index', lat=lat, lon=lon) }}">visit endpoint</a>
+|
+<a href="https://www.openstreetmap.org/#map=17/{{lat }}/{{ lon }}">view in OSM</a>
+|
+<a href="{{ url_for('detail_page', lat=lat, lon=lon) }}">#</a>
 </p>
 
+<p>latitude: {{ lat }} / longitude: {{ lon }}</p>
+
+{% if error %}
+<h2>error</h2>
+
+<p>{{ error }}</p>
+
+{% endif %}
+
+{% if query %}
 <h2>query</h2>
 
 <pre>{{ query }}</pre>
+{% endif %}
 
+{% if r %}
 <h2>reply</h2>
 
 <pre>{{ r.text }}</pre>
+{% endif %}
 
-</body>
-</html>
+</div>
+{% endblock %}
