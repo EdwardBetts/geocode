@@ -52,7 +52,7 @@ def do_lookup(
     return wikidata.build_dict(hit, lat, lon)
 
 
-def lat_lon_to_wikidata(lat: str | float, lon: str | float) -> dict[str, typing.Any]:
+def lat_lon_to_wikidata(lat: float, lon: float) -> dict[str, typing.Any]:
     """Lookup lat/lon and find most appropriate Wikidata item."""
     scotland_code = scotland.get_scotland_code(lat, lon)
 
@@ -188,11 +188,20 @@ def index() -> str | Response:
     if q and q.strip():
         return redirect_to_detail(q)
 
-    lat, lon = request.args.get("lat"), request.args.get("lon")
+    lat_str, lon_str = request.args.get("lat"), request.args.get("lon")
 
-    if lat is None or lon is None:
+    if lat_str is None or lon_str is None:
         samples = sorted(geocode.samples, key=lambda row: row[2])
         return render_template("index.html", samples=samples)
+
+    lat, lon = float(lat_str), float(lon_str)
+
+    if lat < -90 or lat > 90 or lon < -180 or lon > 180:
+        return jsonify(
+            coords={"lat": lat, "lon": lon},
+            error="lat must be between -90 and 90, "
+            + "and lon must be between -180 and 180",
+        )
 
     result = lat_lon_to_wikidata(lat, lon)["result"]
     result.pop("element", None)
@@ -243,6 +252,13 @@ def wikidata_tag() -> str:
 
 def build_detail_page(lat: float, lon: float) -> str:
     """Run lookup and build detail page."""
+    if lat < -90 or lat > 90 or lon < -180 or lon > 180:
+        error = (
+            "latitude must be between -90 and 90, "
+            + "and longitude must be between -180 and 180"
+        )
+        return render_template("query_error.html", lat=lat, lon=lon, error=error)
+
     try:
         reply = lat_lon_to_wikidata(lat, lon)
     except wikidata.QueryError as e:
