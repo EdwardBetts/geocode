@@ -12,11 +12,13 @@ from werkzeug.wrappers import Response
 
 import geocode
 from geocode import database, model, scotland, wikidata
+from geocode.error_mail import setup_error_mail
 
 city_of_london_qid = "Q23311"
 app = Flask(__name__)
 app.config.from_object("config.default")
 database.init_app(app)
+setup_error_mail(app)
 
 Tags = typing.Mapping[str, str]
 logging_enabled = True
