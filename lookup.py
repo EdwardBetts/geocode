@@ -203,7 +203,7 @@ def index() -> str | Response:
             lat=lat,
             lon=lon,
             remote_addr=remote_addr,
-            fqdn=socket.getfqdn(remote_addr),
+            fqdn=socket.getfqdn(remote_addr) if remote_addr else None,
             result=result,
         )
         database.session.add(log)
