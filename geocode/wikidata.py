@@ -4,7 +4,6 @@ import typing
 import urllib.parse
 
 import requests
-import simplejson.errors
 from flask import render_template
 
 from . import headers
@@ -86,7 +85,7 @@ def wdqs(query: str) -> list[Row]:
 
     try:
         return typing.cast(list[Row], r.json()["results"]["bindings"])
-    except simplejson.errors.JSONDecodeError:
+    except requests.exceptions.JSONDecodeError:
         raise QueryError(query, r)
 
 
