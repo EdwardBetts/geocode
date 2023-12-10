@@ -8,6 +8,7 @@ import sys
 import traceback
 import typing
 
+import sqlalchemy
 import sqlalchemy.exc
 import werkzeug.debug.tbtools
 from flask import Flask, jsonify, redirect, render_template, request, url_for
@@ -321,6 +322,20 @@ def detail_page() -> Response | str:
         return redirect(url_for("index"))
 
     return build_detail_page(lat, lon)
+
+
+@app.route("/reports")
+def reports() -> str:
+    """Reports page with various statistics."""
+    log_count = model.LookupLog.query.count()
+
+    log_start_time = database.session.query(
+        sqlalchemy.func.min(model.LookupLog.dt)
+    ).scalar()
+
+    return render_template(
+        "reports.html", log_count=log_count, log_start_time=log_start_time
+    )
 
 
 if __name__ == "__main__":
