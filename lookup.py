@@ -7,6 +7,7 @@ import socket
 import sys
 import traceback
 import typing
+from time import time
 
 import sqlalchemy
 import sqlalchemy.exc
@@ -215,6 +216,7 @@ def handle_database_error(error: Exception) -> tuple[str, int]:
 @app.route("/")
 def index() -> str | Response:
     """Index page."""
+    t0 = time()
     database.session.execute("SELECT 1")
     q = request.args.get("q")
     if q and q.strip():
@@ -246,6 +248,7 @@ def index() -> str | Response:
             remote_addr=remote_addr,
             fqdn=socket.getfqdn(remote_addr) if remote_addr else None,
             result=result,
+            response_time_ms=int((time() - t0) * 1000),
         )
         database.session.add(log)
         database.session.commit()

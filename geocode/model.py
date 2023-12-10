@@ -95,3 +95,4 @@ class LookupLog(Base):
     remote_addr = Column(String)
     fqdn = Column(String)
     result = Column(postgresql.JSONB)
+    response_time_ms = Column(Integer)
