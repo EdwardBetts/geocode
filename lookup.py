@@ -9,10 +9,10 @@ import traceback
 import typing
 from time import time
 
-import sqlalchemy
 import sqlalchemy.exc
 import werkzeug.debug.tbtools
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+from sqlalchemy import func
 from sqlalchemy.orm.query import Query
 from werkzeug.wrappers import Response
 
@@ -332,12 +332,15 @@ def reports() -> str:
     """Reports page with various statistics."""
     log_count = model.LookupLog.query.count()
 
-    log_start_time = database.session.query(
-        sqlalchemy.func.min(model.LookupLog.dt)
-    ).scalar()
+    log_start_time, average_response_time = database.session.query(
+        func.min(model.LookupLog.dt), func.avg(model.LookupLog.response_time_ms)
+    ).one()
 
     return render_template(
-        "reports.html", log_count=log_count, log_start_time=log_start_time
+        "reports.html",
+        log_count=log_count,
+        log_start_time=log_start_time,
+        average_response_time=average_response_time,
     )
 
 

@@ -12,6 +12,8 @@
 
 <p>Total lookups processed: {{ "{:,d}".format(log_count) }}</p>
 
+<p>Average response time: {{ average_response_time | int }} milliseconds</p>
+
 </div>
 
 {% endblock %}
