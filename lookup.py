@@ -27,7 +27,10 @@ database.init_app(app)
 setup_error_mail(app)
 
 Tags = typing.Mapping[str, str]
+StrDict = dict[str, typing.Any]
 logging_enabled = True
+
+fallback_qid_to_commons_cat = {"Q68816332": "Orphir"}
 
 
 @app.errorhandler(werkzeug.exceptions.InternalServerError)
@@ -85,6 +88,20 @@ def do_lookup(
     return wikidata.build_dict(hit, lat, lon)
 
 
+def add_missing_commons_cat(rows: list[StrDict]) -> None:
+    """Add missing details for Commons Categories to Wikidata query results."""
+    for row in rows:
+        if "commonsSiteLink" in row or "commonsCat" in row:
+            continue
+
+        qid = row["item"]["value"].rpartition("/")[2]
+        if qid not in fallback_qid_to_commons_cat:
+            continue
+
+        commons_cat = fallback_qid_to_commons_cat[qid]
+        row["commonsCat"] = {"type": "literal", "value": commons_cat}
+
+
 def lat_lon_to_wikidata(lat: float, lon: float) -> dict[str, typing.Any]:
     """Lookup lat/lon and find most appropriate Wikidata item."""
     scotland_code = scotland.get_scotland_code(lat, lon)
@@ -92,6 +109,7 @@ def lat_lon_to_wikidata(lat: float, lon: float) -> dict[str, typing.Any]:
     elements: typing.Any
     if scotland_code:
         rows = wikidata.lookup_scottish_parish_in_wikidata(scotland_code)
+        add_missing_commons_cat(rows)
         hit = wikidata.commons_from_rows(rows)
         elements = []
         result = wikidata.build_dict(hit, lat, lon)
