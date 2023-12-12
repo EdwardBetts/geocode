@@ -73,7 +73,7 @@ def get_random_lat_lon() -> tuple[float, float]:
 
 
 def do_lookup(
-    elements: "Query[model.Polygon]", lat: str | float, lon: str | float
+    elements: "Query[model.Polygon]", lat: float, lon: float
 ) -> wikidata.WikidataDict:
     """Do lookup."""
     try:
@@ -167,9 +167,7 @@ def hit_from_ref_gss_tag(tags: Tags) -> wikidata.Hit | None:
     return wikidata.get_commons_cat_from_gss(gss) if gss else None
 
 
-def hit_from_name(
-    tags: Tags, lat: str | float, lon: str | float
-) -> wikidata.Hit | None:
+def hit_from_name(tags: Tags, lat: float, lon: float) -> wikidata.Hit | None:
     """Use name to look for hit."""
     if not (name := tags.get("name")):
         return None
@@ -181,10 +179,9 @@ def hit_from_name(
 
 
 def osm_lookup(
-    elements: "Query[model.Polygon]", lat: str | float, lon: str | float
+    elements: "Query[model.Polygon]", lat: float, lon: float
 ) -> wikidata.Hit | None:
     """OSM lookup."""
-    ret: wikidata.Hit | None
     for e in elements:
         assert isinstance(e, model.Polygon)
         assert e.tags

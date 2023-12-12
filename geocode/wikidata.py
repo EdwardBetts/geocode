@@ -102,18 +102,14 @@ def wd_uri_to_qid(value: str) -> str:
     return value[len(wd_entity) - 1 :]
 
 
-def geosearch_query(lat: str | float, lon: str | float) -> list[Row]:
+def geosearch_query(lat: float, lon: float) -> list[Row]:
     """Geosearch via WDQS."""
-    if isinstance(lat, float):
-        lat = f"{lat:f}"
-    if isinstance(lon, float):
-        lon = f"{lon:f}"
-
-    query = render_template("sparql/geosearch.sparql", lat=lat, lon=lon)
+    lat_str, lon_str = f"{lat:f}", f"{lon:f}"
+    query = render_template("sparql/geosearch.sparql", lat=lat_str, lon=lon_str)
     return wdqs(query)
 
 
-def geosearch(lat: str | float, lon: str | float) -> Row | None:
+def geosearch(lat: float, lon: float) -> Row | None:
     """Geosearch."""
     default_max_dist = 1
     rows = geosearch_query(lat, lon)
@@ -157,7 +153,7 @@ def lookup_gss_in_wikidata(gss: str) -> list[Row]:
     return wdqs(render_template("sparql/lookup_gss.sparql", gss=gss))
 
 
-def lookup_wikidata_by_name(name: str, lat: float | str, lon: float | str) -> list[Row]:
+def lookup_wikidata_by_name(name: str, lat: float, lon: float) -> list[Row]:
     """Lookup place in Wikidata by name."""
     query = render_template(
         "sparql/lookup_by_name.sparql", name=repr(name), lat=str(lat), lon=str(lon)
@@ -195,11 +191,12 @@ def get_commons_cat_from_gss(gss: str) -> Hit | None:
 WikidataDict = dict[str, None | bool | str | int | dict[str, typing.Any]]
 
 
-def build_dict(hit: Hit | None, lat: str | float, lon: str | float) -> WikidataDict:
+def build_dict(hit: Hit | None, lat: float, lon: float) -> WikidataDict:
     """Build dict."""
     coords = {"lat": lat, "lon": lon}
     if hit is None:
         return {"commons_cat": None, "missing": True, "coords": coords}
+    assert isinstance(hit["commons_cat"], str)
     commons_cat = hit["commons_cat"]
     ret: WikidataDict = {
         "coords": coords,
