@@ -344,18 +344,40 @@ def detail_page() -> Response | str:
 
 @app.route("/reports")
 def reports() -> str:
-    """Reports page with various statistics."""
+    """Return reports page with various statistics."""
     log_count = model.LookupLog.query.count()
 
     log_start_time, average_response_time = database.session.query(
         func.min(model.LookupLog.dt), func.avg(model.LookupLog.response_time_ms)
     ).one()
 
+    # Construct the query
+    by_day = (
+        database.session.query(
+            func.date(model.LookupLog.dt).label("log_date"),
+            func.count(model.LookupLog.id).label("count"),
+        )
+        .group_by("log_date")
+        .order_by(func.date(model.LookupLog.dt).desc())
+    )
+
+    top_places = (
+        database.session.query(
+            model.LookupLog.result["commons_cat"]["title"].label("place"),
+            func.count().label("num"),
+        )
+        .group_by("place")
+        .order_by(func.count().desc())
+        .limit(50)
+    )
+
     return render_template(
         "reports.html",
         log_count=log_count,
         log_start_time=log_start_time,
         average_response_time=average_response_time,
+        by_day=by_day,
+        top_places=top_places,
     )
 
 
