@@ -371,6 +371,15 @@ def reports() -> str:
         .limit(50)
     )
 
+    missing_places = (
+        database.session.query(model.LookupLog)
+        .filter(
+            model.LookupLog.result.has_key("missing")  # type: ignore
+        )  # Filtering for entries where result contains 'missing'
+        .order_by(model.LookupLog.dt.desc())  # Ordering by dt in descending order
+        .limit(50)  # Limiting to the top 50 results
+    )
+
     return render_template(
         "reports.html",
         log_count=log_count,
@@ -378,6 +387,7 @@ def reports() -> str:
         average_response_time=average_response_time,
         by_day=by_day,
         top_places=top_places,
+        missing_places=missing_places,
     )
 
 

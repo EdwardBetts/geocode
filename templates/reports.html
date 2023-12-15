@@ -14,6 +14,47 @@
 
 <p>Average response time: {{ average_response_time | int }} milliseconds</p>
 
+<h4>requests per day</h4>
+<table class="table table-hover w-auto">
+{% for day, day_count in by_day %}
+<tr>
+  <td class="text-end">{{ day.strftime("%a %d %b %Y") }}</td>
+  <td class="text-end">{{ "{:,d}".format(day_count) }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h4>top places</h4>
+<table class="table table-hover w-auto">
+{% for place, place_count in top_places %}
+<tr>
+  <td class="text-end">
+    {% if place %}
+      <a href="https://commons.wikimedia.org/wiki/Category:{{ place }}">{{ place }}</a>
+    {% else %}
+      <span class="badge bg-danger">no place found</span>
+    {% endif %}
+  </td>
+  <td class="text-end">{{ "{:,d}".format(place_count) }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h4>missing places</h4>
+<p>Recent queries that failed to resolve into a place with a category.</p>
+<table class="table table-hover w-auto">
+{% for log in missing_places %}
+<tr>
+  <td class="text-end">{{ log.dt.strftime("%a %d %b %Y at %H:%M:%S") }}</td>
+  <td class="text-end">
+    <a href="{{ url_for("detail_page", lat=log.lat, lon=log.lon) }}">
+    {{ "{:.3f},{:.3f}".format(log.lat, log.lon) }}
+    </a>
+  </td>
+</tr>
+{% endfor %}
+</table>
+
 </div>
 
 {% endblock %}
