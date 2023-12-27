@@ -114,7 +114,8 @@ def lat_lon_to_wikidata(lat: float, lon: float) -> dict[str, typing.Any]:
         elements = []
         result = wikidata.build_dict(hit, lat, lon)
 
-        return {"elements": elements, "result": result}
+        if not result.get("missing"):
+            return {"elements": elements, "result": result}
 
     elements = model.Polygon.coords_within(lat, lon)
     result = do_lookup(elements, lat, lon)
