@@ -30,7 +30,9 @@ Latitude/Longitude: <input name="q"/> (e.g. 54.375, -2.999) <input type="submit"
 {% endfor %}
 </ul>
 
-<p>source code: <a href="https://github.com/EdwardBetts/uk-geocode">https://github.com/EdwardBetts/uk-geocode</a></p>
+{% set repo = "https://git.4angle.com/edward/geocode" %}
+
+<p>source code: <a href="{{ repo }}">{{ repo }}</a></p>
 </div>
 
 {% endblock %}
