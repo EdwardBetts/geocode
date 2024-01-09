@@ -14,7 +14,7 @@ SELECT DISTINCT ?item ?distance ?itemLabel ?isa ?isaLabel ?commonsCat ?commonsSi
   }
   MINUS { ?item wdt:P582 ?endTime . }
   MINUS {
-    VALUES ?isNot { wd:Q1497375 wd:Q1497364 wd:Q92086 wd:Q31028835 wd:Q160742 wd:Q17485079 wd:Q44613 wd:Q98116669 }
+    VALUES ?isNot { wd:Q1497375 wd:Q1497364 wd:Q92086 wd:Q31028835 wd:Q160742 wd:Q17485079 wd:Q44613 wd:Q98116669 wd:Q3146899 wd:Q708676 wd:Q18917976 wd:Q2750108 wd:Q6021560 wd:Q39614 wd:Q513550 }
     ?item wdt:P31 ?isNot .
   }
   OPTIONAL { ?item wdt:P373 ?commonsCat. }
