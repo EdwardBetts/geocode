@@ -30,7 +30,7 @@ Tags = typing.Mapping[str, str]
 StrDict = dict[str, typing.Any]
 logging_enabled = True
 
-fallback_qid_to_commons_cat = {"Q68816332": "Orphir"}
+fallback_qid_to_commons_cat = {"Q68816332": "Orphir", "Q68815208": "Crail"}
 
 
 @app.errorhandler(werkzeug.exceptions.InternalServerError)
