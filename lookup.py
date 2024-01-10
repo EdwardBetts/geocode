@@ -410,5 +410,35 @@ def reports() -> str:
     )
 
 
+@app.route("/pin/<lat>/<lon>")
+def pin_detail(lat: str, lon: str) -> Response:
+    """Details for map pin location."""
+    reply = lat_lon_to_wikidata(float(lat), float(lon))
+    element = reply["result"].pop("element", None)
+    geojson = reply["result"].pop("geojson", None)
+
+    css = HtmlFormatter().get_style_defs(".highlight")
+
+    html = render_template(
+        "pin_detail.html",
+        lat=lat,
+        lon=lon,
+        str=str,
+        element_id=element,
+        geojson=geojson,
+        css=css,
+        **reply,
+    )
+
+    return jsonify(html=html)
+
+
+@app.route("/map")
+def map_page() -> str:
+    """Map page."""
+    css = HtmlFormatter().get_style_defs(".highlight")
+    return render_template("map.html", css=css)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
