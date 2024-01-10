@@ -54,6 +54,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   width: 48%
 }
 
+{{ css | safe }}
+
 </style>
 {% endblock %}
 
@@ -94,6 +96,13 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 <p>{{ elements.count() }} surrounding elements found</p>
 {% else %}
 <p>No elements found</p>
+{% endif %}
+
+{% if query %}
+<p>Searching for Wikimedia Commons categories using this SPARQL query. <a href="https://query.wikidata.org/#{{ query | urlencode }}">Wikidata Query service</a></p>
+<div>
+{{ query | highlight_sparql | safe }}
+</div>
 {% endif %}
 
 {% for element in elements %}

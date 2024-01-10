@@ -12,6 +12,9 @@ from time import time
 import sqlalchemy.exc
 import werkzeug.debug.tbtools
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import SparqlLexer
 from sqlalchemy import func
 from sqlalchemy.orm.query import Query
 from werkzeug.wrappers import Response
@@ -138,7 +141,9 @@ def lat_lon_to_wikidata(lat: float, lon: float) -> dict[str, typing.Any]:
         elements = []
         result = wikidata.build_dict(hit, lat, lon)
 
-    return {"elements": elements, "result": result}
+    query = wikidata.geosearch_query(lat, lon)
+
+    return {"elements": elements, "result": result, "query": query}
 
 
 def get_admin_level(tags: Tags) -> int | None:
@@ -301,6 +306,16 @@ def wikidata_tag() -> str:
     )
 
 
+def highlight_sparql(query: str) -> str:
+    """Highlight SPARQL query syntax using Pygments."""
+    lexer = SparqlLexer()
+    formatter = HtmlFormatter()
+    return highlight(query, lexer, formatter)
+
+
+app.jinja_env.filters["highlight_sparql"] = highlight_sparql
+
+
 def build_detail_page(lat: float, lon: float) -> str:
     """Run lookup and build detail page."""
     if lat < -90 or lat > 90 or lon < -180 or lon > 180:
@@ -319,6 +334,8 @@ def build_detail_page(lat: float, lon: float) -> str:
     element = reply["result"].pop("element", None)
     geojson = reply["result"].pop("geojson", None)
 
+    css = HtmlFormatter().get_style_defs(".highlight")
+
     return render_template(
         "detail.html",
         lat=lat,
@@ -326,6 +343,7 @@ def build_detail_page(lat: float, lon: float) -> str:
         str=str,
         element_id=element,
         geojson=geojson,
+        css=css,
         **reply,
     )
 

@@ -102,17 +102,17 @@ def wd_uri_to_qid(value: str) -> str:
     return value[len(wd_entity) - 1 :]
 
 
-def geosearch_query(lat: float, lon: float) -> list[Row]:
+def geosearch_query(lat: float, lon: float) -> str:
     """Geosearch via WDQS."""
     lat_str, lon_str = f"{lat:f}", f"{lon:f}"
     query = render_template("sparql/geosearch.sparql", lat=lat_str, lon=lon_str)
-    return wdqs(query)
+    return query
 
 
 def geosearch(lat: float, lon: float) -> Row | None:
     """Geosearch."""
     default_max_dist = 1
-    rows = geosearch_query(lat, lon)
+    rows = wdqs(geosearch_query(lat, lon))
     max_dist = {
         "Q188509": 1,  # suburb
         "Q3957": 2,  # town
