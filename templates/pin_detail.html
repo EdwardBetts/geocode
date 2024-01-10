@@ -1,0 +1,34 @@
+<h4>API returns</h4>
+<pre>{{ result | tojson(indent=2) }}</pre>
+
+{% if result.wikidata %}
+<p><strong>Wikidata item</strong>: <a href="https://www.wikidata.org/wiki/{{ result.wikidata }}">{{ result.wikidata }}</a></p>
+{% endif %}
+
+{% if result.commons_cat %}
+<p><strong>Commons category</strong>: <a href="{{ result.commons_cat.url }}">{{result.commons_cat.title }}</a></p>
+{% endif %}
+
+{% if elements %}
+<p>{{ elements.count() }} surrounding elements found</p>
+{% else %}
+<p>No elements found</p>
+{% endif %}
+
+{% if query %}
+<p>Searching for Wikimedia Commons categories using this SPARQL query. <a href="https://query.wikidata.org/#{{ query | urlencode }}">Wikidata Query service</a></p>
+<div>
+{{ query | highlight_sparql | safe }}
+</div>
+{% endif %}
+
+{% for element in elements %}
+{% set tags = element.tags %}
+<div class="rounded border border-4 p-1 my-2{% if element_id == element.osm_id %} bg-primary-subtle{% endif %}">
+  {% for key, value in element.tags.items() if not (key == "way_area" or "name:" in key or key.startswith("source")) %}
+  <div><strong>{{ key }}</strong>: {{ value }}</div>
+  {% endfor %}
+  </div>
+{% endfor %}
+
+</div>
