@@ -196,7 +196,6 @@ def build_dict(hit: Hit | None, lat: float, lon: float) -> WikidataDict:
     coords = {"lat": lat, "lon": lon}
     if hit is None:
         return {"commons_cat": None, "missing": True, "coords": coords}
-    assert isinstance(hit["commons_cat"], str)
     commons_cat = hit["commons_cat"]
     ret: WikidataDict = {
         "coords": coords,
@@ -208,6 +207,7 @@ def build_dict(hit: Hit | None, lat: float, lon: float) -> WikidataDict:
     if not commons_cat:
         return ret
 
+    assert isinstance(commons_cat, str)
     url = commons_cat_start + urllib.parse.quote(commons_cat.replace(" ", "_"))
     ret["commons_cat"] = {"title": commons_cat, "url": url}
 
