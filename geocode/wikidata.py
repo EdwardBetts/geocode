@@ -3,14 +3,25 @@
 import typing
 import urllib.parse
 
+import backoff
+import backoff.types
 import requests
 from flask import render_template
+from requests.exceptions import JSONDecodeError, RequestException
 
-from . import headers
+from . import headers, mail
 
 wikidata_query_api_url = "https://query.wikidata.org/bigdata/namespace/wdq/sparql"
 wd_entity = "http://www.wikidata.org/entity/Q"
 commons_cat_start = "https://commons.wikimedia.org/wiki/Category:"
+
+
+def giveup(details: backoff.types.Details) -> None:
+    """Display API call fail debug info."""
+    last_exception = details["exception"]  # type: ignore
+    if last_exception and isinstance(last_exception, APIResponseError):
+        body = f"Error making Wikidata API call\n\n{last_exception.response.text}"
+        mail.send_to_admin("Geocode error", body)
 
 
 class QueryError(Exception):
@@ -22,13 +33,31 @@ class QueryError(Exception):
         self.r = r
 
 
+class APIResponseError(Exception):
+    """Custom exception for API errors with response text."""
+
+    def __init__(self, message: str, response: requests.Response):
+        """Init."""
+        super().__init__(message)
+        self.response = response
+
+
+@backoff.on_exception(
+    backoff.expo,
+    (RequestException, APIResponseError),
+    max_tries=5,
+    on_giveup=giveup,
+)
 def api_call(params: dict[str, str | int]) -> dict[str, typing.Any]:
     """Wikidata API call."""
     api_params: dict[str, str | int] = {"format": "json", "formatversion": 2, **params}
-    r = requests.get(
-        "https://www.wikidata.org/w/api.php", params=api_params, headers=headers
-    )
-    return typing.cast(dict[str, typing.Any], r.json())
+    try:
+        r = requests.get(
+            "https://www.wikidata.org/w/api.php", params=api_params, headers=headers
+        )
+        return typing.cast(dict[str, typing.Any], r.json())
+    except JSONDecodeError:
+        raise APIResponseError("Failed to decode JSON", r)
 
 
 def get_entity(qid: str) -> dict[str, typing.Any] | None:
