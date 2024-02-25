@@ -106,6 +106,7 @@ def qid_to_commons_category(qid: str, check_p910: bool = True) -> str | None:
 Row = dict[str, dict[str, typing.Any]]
 
 
+@backoff.on_exception(backoff.expo, QueryError, max_tries=5)
 def wdqs(query: str) -> list[Row]:
     """Pass query to the Wikidata Query Service."""
     r = requests.post(

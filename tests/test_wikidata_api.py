@@ -2,7 +2,7 @@ import pytest
 import pytest_mock
 import requests
 import responses
-from geocode.wikidata import APIResponseError, api_call
+from geocode.wikidata import APIResponseError, QueryError, api_call, wdqs
 
 max_tries = 5
 
@@ -50,4 +50,23 @@ def test_api_call_retries_on_connection_error(
     with pytest.raises(requests.exceptions.ConnectionError):
         api_call({"action": "wbgetentities", "ids": "Q42"})
 
+    assert mocked_sleep.call_count == max_tries - 1
+
+
+def test_wdqs_retry(mocker: pytest_mock.plugin.MockerFixture) -> None:
+    """Test retry for WDQS API calls."""
+    # Patch 'time.sleep' to instantly return, effectively skipping the sleep
+    mocked_sleep = mocker.patch("time.sleep", return_value=None)
+
+    responses.add(
+        responses.POST,
+        "https://query.wikidata.org/bigdata/namespace/wdq/sparql",
+        body="bad request",
+        status=400,
+    )
+
+    with pytest.raises(QueryError):
+        wdqs("test query")
+
+    max_tries = 5
     assert mocked_sleep.call_count == max_tries - 1
