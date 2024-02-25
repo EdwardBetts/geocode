@@ -5,7 +5,6 @@ from logging import Formatter
 from logging.handlers import SMTPHandler
 
 import flask
-from flask import g, request
 
 PROJECT = "geocode"
 
@@ -21,10 +20,10 @@ class MySMTPHandler(SMTPHandler):
             else f"{PROJECT} error: {record.pathname}:{record.lineno:d}"
         )
 
-        if qid := getattr(g, "qid", None):
+        if qid := getattr(flask.g, "qid", None):
             subject += f" {qid}"
 
-        if label := getattr(g, "label", None):
+        if label := getattr(flask.g, "label", None):
             subject += f": {label}"
 
         return subject
@@ -35,7 +34,7 @@ class RequestFormatter(Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """Record includes request."""
-        record.request = request
+        record.request = flask.request
         return super().format(record)
 
 
